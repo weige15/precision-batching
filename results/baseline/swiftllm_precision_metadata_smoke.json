@@ -1,0 +1,35 @@
+{
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+  "cuda_visible_devices": "5",
+  "legacy_output": [
+    271,
+    220
+  ],
+  "legacy_repeat_output": [
+    271,
+    220
+  ],
+  "legacy_exact_repeat": true,
+  "mixed_profile_output": [
+    271,
+    13
+  ],
+  "mixed_profile_differs": true,
+  "profiles": [
+    {
+      "q_bits": 16,
+      "k_bits": 16,
+      "v_bits": 16,
+      "o_bits": 16,
+      "ffn_bits": 16
+    },
+    {
+      "q_bits": 4,
+      "k_bits": 8,
+      "v_bits": 4,
+      "o_bits": 8,
+      "ffn_bits": 4
+    }
+  ],
+  "note": "The mixed result uses SwiftLLM's eager quantize/dequantize proxy; it is not a native low-bit benchmark."
+}

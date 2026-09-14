@@ -1,0 +1,406 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/__init__.py vendor/swiftLLM/swiftllm/__init__.py
+--- vendor/swiftLLM-upstream/swiftllm/__init__.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/__init__.py	2026-09-15 02:42:18.664817536 +0800
+@@ -4,6 +4,7 @@
+ # The Engine & RawRequest for online serving
+ from swiftllm.server.engine import Engine
+ from swiftllm.server.structs import RawRequest
++from swiftllm.precision import PrecisionProfile
+ 
+ # The Model for offline inference
+ from swiftllm.worker.model import LlamaModel
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/precision.py vendor/swiftLLM/swiftllm/precision.py
+--- vendor/swiftLLM-upstream/swiftllm/precision.py	1970-01-01 08:00:00.000000000 +0800
++++ vendor/swiftLLM/swiftllm/precision.py	2026-09-15 03:13:34.488593325 +0800
+@@ -0,0 +1,94 @@
++"""Precision metadata and explicit numerical proxy helpers.
++
++The serving path only needs a small, immutable request-level description of
++precision.  Native low-bit kernels are intentionally *not* part of this
++module.  ``quantize_dequantize`` is an offline/eager proxy for experiments;
++it materializes a dequantized FP tensor and must not be interpreted as a
++low-bit speedup.
++"""
++
++from __future__ import annotations
++
++import dataclasses
++from collections.abc import Mapping
++from typing import Any, Literal
++
++
++Projection = Literal["q", "k", "v", "o", "ffn"]
++SUPPORTED_BITS = (4, 8, 16)
++
++
++@dataclasses.dataclass(frozen=True)
++class PrecisionProfile:
++    """Per-request weight precision metadata for the model projections.
++
++    A profile is deliberately independent of scheduling.  The default profile
++    is all-FP16 and is the only profile used unless a caller opts in.
++    """
++
++    q_bits: int = 16
++    k_bits: int = 16
++    v_bits: int = 16
++    o_bits: int = 16
++    ffn_bits: int = 16
++
++    def __post_init__(self) -> None:
++        for name in ("q_bits", "k_bits", "v_bits", "o_bits", "ffn_bits"):
++            bits = getattr(self, name)
++            if bits not in SUPPORTED_BITS:
++                raise ValueError(f"{name} must be one of {SUPPORTED_BITS}, got {bits!r}")
++
++    @classmethod
++    def default(cls) -> "PrecisionProfile":
++        return cls()
++
++    @classmethod
++    def from_mapping(cls, value: Mapping[str, Any] | None) -> "PrecisionProfile":
++        """Build a profile from API/config JSON, rejecting unknown fields."""
++        if value is None:
++            return cls.default()
++        allowed = {"q_bits", "k_bits", "v_bits", "o_bits", "ffn_bits"}
++        unknown = set(value) - allowed
++        if unknown:
++            raise ValueError(f"unknown precision profile fields: {sorted(unknown)}")
++        return cls(**{key: value[key] for key in allowed if key in value})
++
++    def bits_for(self, projection: Projection) -> int:
++        return getattr(self, f"{projection}_bits")
++
++    def as_dict(self) -> dict[str, int]:
++        return dataclasses.asdict(self)
++
++
++# Kept as a function so the offline harness and the optional eager model proxy
++# share exactly one clearly labeled quantization rule.
++def quantize_dequantize(weight, bits: int, group_size: int = 128):
++    """Symmetric per-input-group weight-only fake quantization.
++
++    The return value is still an FP tensor.  This is a numerical proxy for
++    sensitivity experiments, not a packed low-bit representation or a native
++    execution kernel.
++    """
++    import torch
++
++    if bits == 16:
++        return weight
++    if bits not in (4, 8):
++        raise ValueError(f"proxy supports 4, 8, or 16 bits, got {bits}")
++    original_shape = weight.shape
++    input_size = original_shape[-1]
++    padded_size = ((input_size + group_size - 1) // group_size) * group_size
++    flat_weight = weight.float().reshape(-1, input_size)
++    if padded_size != input_size:
++        flat_weight = torch.nn.functional.pad(flat_weight, (0, padded_size - input_size))
++    flat = flat_weight.reshape(-1, group_size)
++    qmax = (1 << (bits - 1)) - 1
++    scale = flat.abs().amax(dim=-1, keepdim=True).clamp_min(torch.finfo(torch.float32).eps) / qmax
++    quantized = torch.round(flat / scale).clamp(-qmax - 1, qmax)
++    dequantized = (quantized * scale).reshape(-1, padded_size)[:, :input_size]
++    return dequantized.reshape(original_shape).to(dtype=weight.dtype)
++
++
++def all_fp16(profiles: list[PrecisionProfile] | None) -> bool:
++    """Whether a profile list is empty/default-only and can use the old path."""
++    return not profiles or all(profile == PrecisionProfile.default() for profile in profiles)
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/server/api_server.py vendor/swiftLLM/swiftllm/server/api_server.py
+--- vendor/swiftLLM-upstream/swiftllm/server/api_server.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/server/api_server.py	2026-09-15 04:08:05.627828845 +0800
+@@ -13,6 +13,18 @@
+ app = fastapi.FastAPI()
+ engine = None
+ 
++
++def _raw_request_from_dict(req_dict: dict) -> swiftllm.RawRequest:
++    try:
++        return swiftllm.RawRequest(
++            prompt=req_dict["prompt"],
++            output_len=req_dict["output_len"],
++            precision_profile=req_dict.get("precision_profile"),
++        )
++    except (KeyError, TypeError, ValueError) as error:
++        raise fastapi.HTTPException(status_code=422, detail=str(error)) from error
++
++
+ @app.post("/generate")
+ async def generate(req: fastapi.Request) -> fastapi.Response:
+     """
+@@ -24,10 +36,7 @@
+     - `decode`: boolean, whether to decode the output tokens (default: True)
+     """
+     req_dict = await req.json()
+-    raw_request = swiftllm.RawRequest(
+-        prompt = req_dict["prompt"],
+-        output_len = req_dict["output_len"]
+-    )
++    raw_request = _raw_request_from_dict(req_dict)
+     # Whether to decode the output
+     decode_output = req_dict.get("decode", False)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/server/engine.py vendor/swiftLLM/swiftllm/server/engine.py
+--- vendor/swiftLLM-upstream/swiftllm/server/engine.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/server/engine.py	2026-09-15 02:42:13.678875578 +0800
+@@ -147,11 +147,13 @@
+                 for req in cur_batch
+                 if not req.is_prefill_stage()
+             ]
++            precision_profiles = [req.precision_profile for req in cur_batch]
+             output_tokens = await self._run_on_model_async(
+                 self.model.forward,
+                 input_ids,
+                 seq_ids,
+-                decoding_seq_lens_list
++                decoding_seq_lens_list,
++                precision_profiles=precision_profiles,
+             )
+ 
+             # Deal with output tokens
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/server/structs.py vendor/swiftLLM/swiftllm/server/structs.py
+--- vendor/swiftLLM-upstream/swiftllm/server/structs.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/server/structs.py	2026-09-15 02:42:01.438019156 +0800
+@@ -1,5 +1,9 @@
+ import asyncio
+ import dataclasses
++from collections.abc import Mapping
++from typing import Any
++
++from swiftllm.precision import PrecisionProfile
+ 
+ @dataclasses.dataclass
+ class StepOutput:
+@@ -17,9 +21,19 @@
+     prompt: str
+     output_len: int
+ 
+-    def __init__(self, prompt: str, output_len: int):
++    def __init__(
++        self,
++        prompt: str,
++        output_len: int,
++        precision_profile: PrecisionProfile | Mapping[str, Any] | None = None,
++    ):
+         self.prompt = prompt
+         self.output_len = output_len
++        self.precision_profile = (
++            precision_profile
++            if isinstance(precision_profile, PrecisionProfile)
++            else PrecisionProfile.from_mapping(precision_profile)
++        )
+ 
+ 
+ class Request:
+@@ -48,6 +62,7 @@
+         self.prompt_token_ids = []
+         self.prompt_len = 0
+         self.output_len = raw_request.output_len
++        self.precision_profile = raw_request.precision_profile
+         self.output_q = asyncio.Queue()
+         self.finished_event = asyncio.Event()
+         self.request_id = -1
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/worker/infer_state.py vendor/swiftLLM/swiftllm/worker/infer_state.py
+--- vendor/swiftLLM-upstream/swiftllm/worker/infer_state.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/worker/infer_state.py	2026-09-15 02:41:41.772253110 +0800
+@@ -1,6 +1,9 @@
+ import dataclasses
++
+ import torch
+ 
++from swiftllm.precision import PrecisionProfile
++
+ @dataclasses.dataclass
+ class LlamaInferState:
+     batch_size: int
+@@ -27,3 +30,9 @@
+     position_sin: torch.Tensor	# [num_tokens, hidden_size]
+ 
+     ignore_kvcache: bool    # Skip storing the key/value cache, useful when profiling the number of kv blocks
++
++    # Request-level precision metadata.  ``token_request_ids`` maps each row
++    # in the flattened input to an entry in ``precision_profiles``.  Empty
++    # metadata means the legacy all-FP16 path.
++    precision_profiles: list[PrecisionProfile] = dataclasses.field(default_factory=list)
++    token_request_ids: list[int] = dataclasses.field(default_factory=list)
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/worker/kernels/linear.py vendor/swiftLLM/swiftllm/worker/kernels/linear.py
+--- vendor/swiftLLM-upstream/swiftllm/worker/kernels/linear.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/worker/kernels/linear.py	2026-09-15 02:41:20.899506016 +0800
+@@ -1,12 +1,42 @@
+ import torch
+ 
++from swiftllm.precision import PrecisionProfile, quantize_dequantize
++
++
+ def linear(
+-	a: torch.Tensor,	# [a, b]
+-	w: torch.Tensor		# [c, b]
++    a: torch.Tensor,	# [a, b]
++    w: torch.Tensor,		# [c, b]
++    *,
++    projection: str | None = None,
++    precision_profiles: list[PrecisionProfile] | None = None,
++    token_request_ids: list[int] | None = None,
+ ) -> torch.Tensor:		# [a, c]
+-	# pylint: disable=not-callable
+-	# NOTE. It seems that torch.nn.functional.linear automatically select
+-	# the best implementation for the given input shapes (GEMM or GEMV) while
+-	# torch.matmul always uses GEMM. So, we use torch.nn.functional.linear here
+-	# to get the best performance.
+-	return torch.nn.functional.linear(a, w)
++    """Run a projection, optionally using the explicit eager proxy.
++
++    The no-profile/all-FP16 branch is intentionally the original one-line
++    operation. Low-bit profiles are only a research proxy: weights are
++    quantized and immediately dequantized before ``F.linear``. No packed
++    representation or acceleration is claimed.
++    """
++    # pylint: disable=not-callable
++    if projection is None or not precision_profiles:
++        return torch.nn.functional.linear(a, w)
++
++    bits = [profile.bits_for(projection) for profile in precision_profiles]
++    if all(bit == 16 for bit in bits):
++        return torch.nn.functional.linear(a, w)
++    if token_request_ids is None or len(token_request_ids) != a.shape[0]:
++        raise ValueError("token_request_ids are required for non-FP16 request profiles")
++
++    # Different requests may select different precision for the same
++    # projection. Compute each group separately; this is deliberately simple
++    # and is not intended to be a serving implementation.
++    output = torch.empty((a.shape[0], w.shape[0]), device=a.device, dtype=a.dtype)
++    for request_id, bit in enumerate(bits):
++        rows = [index for index, owner in enumerate(token_request_ids) if owner == request_id]
++        if not rows:
++            continue
++        row_index = torch.tensor(rows, device=a.device, dtype=torch.long)
++        quantized_weight = quantize_dequantize(w, bit)
++        output.index_copy_(0, row_index, torch.nn.functional.linear(a.index_select(0, row_index), quantized_weight))
++    return output
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/worker/layers/transformer_layer.py vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py
+--- vendor/swiftLLM-upstream/swiftllm/worker/layers/transformer_layer.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py	2026-09-15 02:41:33.916347732 +0800
+@@ -51,9 +51,27 @@
+         )
+ 
+         # Calculate QKV
+-        q = linear(input_embds, self.weight.q_proj)		# [num_total_tokens, hidden_size]
+-        k = linear(input_embds, self.weight.k_proj)		# [num_total_tokens, num_kv_heads*head_dim]
+-        v = linear(input_embds, self.weight.v_proj)		# [num_total_tokens, num_kv_heads*head_dim]
++        q = linear(  # [num_total_tokens, hidden_size]
++            input_embds,
++            self.weight.q_proj,
++            projection="q",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
++        k = linear(  # [num_total_tokens, num_kv_heads*head_dim]
++            input_embds,
++            self.weight.k_proj,
++            projection="k",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
++        v = linear(  # [num_total_tokens, num_kv_heads*head_dim]
++            input_embds,
++            self.weight.v_proj,
++            projection="v",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
+         q = q.view(-1, self.model_config.num_q_heads,  self.model_config.head_dim)	# [num_total_tokens, num_q_heads, head_dim]
+         k = k.view(-1, self.model_config.num_kv_heads, self.model_config.head_dim)	# [num_total_tokens, num_kv_heads, head_dim]
+         v = v.view(-1, self.model_config.num_kv_heads, self.model_config.head_dim)	# [num_total_tokens, num_kv_heads, head_dim]
+@@ -114,7 +132,13 @@
+             torch.cuda.default_stream().wait_event(event)
+         
+         # Output GEMM
+-        o = linear(o, self.weight.o_proj)	# [num_total_tokens, hidden_size]
++        o = linear(  # [num_total_tokens, hidden_size]
++            o,
++            self.weight.o_proj,
++            projection="o",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
+ 
+         # residual & FFN norm
+         fused_add_rmsnorm_inplace(o, residual_buf, self.weight.ffn_norm, self.model_config.rms_norm_eps)
+@@ -123,9 +147,21 @@
+         v = None
+ 
+         # FFN
+-        up_gate_proj = linear(o, self.weight.up_gate_proj)
++        up_gate_proj = linear(
++            o,
++            self.weight.up_gate_proj,
++            projection="ffn",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
+         silu_and_mul_inplace(up_gate_proj)
+-        ffn_out = linear(up_gate_proj[:, :self.model_config.ffn_inter_dim], self.weight.down_proj)
++        ffn_out = linear(
++            up_gate_proj[:, :self.model_config.ffn_inter_dim],
++            self.weight.down_proj,
++            projection="ffn",
++            precision_profiles=infer_state.precision_profiles,
++            token_request_ids=infer_state.token_request_ids,
++        )
+ 
+         return ffn_out
+     
+\ No newline at end of file
+diff -ruN '--exclude=__pycache__' '--exclude=*.so' '--exclude=build' '--exclude=*.egg-info' vendor/swiftLLM-upstream/swiftllm/worker/model.py vendor/swiftLLM/swiftllm/worker/model.py
+--- vendor/swiftLLM-upstream/swiftllm/worker/model.py	2025-06-10 13:43:08.000000000 +0800
++++ vendor/swiftLLM/swiftllm/worker/model.py	2026-09-15 02:41:53.828109202 +0800
+@@ -8,6 +8,7 @@
+ from swiftllm.worker.weight import load_weights
+ from swiftllm.worker.block_manager import BlockManager
+ from swiftllm.utils import GB
++from swiftllm.precision import PrecisionProfile
+ import swiftllm_c
+ 
+ from .layers.pre_layer import LlamaPreLayer
+@@ -255,6 +256,7 @@
+         seq_ids_list: list[int],     # [batch_size]
+         decoding_seq_lens_list: list[int], # [num_decoding_seqs]
+         ignore_kvcache: bool = False,   # Skip actions related to kv cache, useful when profiling the number of kv blocks
++        precision_profiles: list[PrecisionProfile] | None = None,
+     ) -> list[int]:
+         """
+         Run a forward pass of the LlamaModel.
+@@ -275,6 +277,20 @@
+         batch_size = len(input_ids_list)
+         num_tokens = len(flattened_input_ids)
+ 
++        if precision_profiles is None:
++            precision_profiles = [PrecisionProfile.default() for _ in range(batch_size)]
++        if len(precision_profiles) != batch_size:
++            raise ValueError(
++                "precision_profiles must contain one profile per request in the batch"
++            )
++        token_request_ids = [
++            request_id
++            for request_id, input_ids in enumerate(input_ids_list)
++            for _ in input_ids
++        ]
++        if len(token_request_ids) != num_tokens:
++            raise ValueError("token_request_ids do not cover the flattened input")
++
+         prefill_seq_lens_list = seq_lengths_list[:num_prefill_seqs]
+         prefill_seq_lens = torch.tensor(prefill_seq_lens_list, dtype=torch.int32, device="cuda")
+         prefill_start_locs = torch.cumsum(prefill_seq_lens, dim=0, dtype=torch.int32) - prefill_seq_lens
+@@ -350,7 +366,10 @@
+             position_cos = self._cos_cached[position_indices],
+             position_sin = self._sin_cached[position_indices],
+ 
+-            ignore_kvcache = ignore_kvcache
++            ignore_kvcache = ignore_kvcache,
++
++            precision_profiles = precision_profiles,
++            token_request_ids = token_request_ids,
+         )
+ 
+         return self._forward(

@@ -1,0 +1,62 @@
+{
+  "recorded_on": "2026-09-15",
+  "working_directory": "/nfs/home/s314511048/precision-batching",
+  "python": ".venv/bin/python",
+  "logical_device_note": "CUDA_VISIBLE_DEVICES remaps the listed physical GPU to logical cuda:0 inside each process.",
+  "commands": [
+    {
+      "name": "clean_swiftllm_baseline",
+      "cuda_visible_devices": "5",
+      "command": "PYTHONPATH=\"$PWD/vendor/swiftLLM-upstream:$PWD/vendor/swiftLLM-upstream/csrc\" CUDA_VISIBLE_DEVICES=5 .venv/bin/python vendor/swiftLLM-upstream/examples/offline.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+      "output": "results/baseline/swiftllm_unmodified_1b.log"
+    },
+    {
+      "name": "research_fork_noop_baseline",
+      "cuda_visible_devices": "5",
+      "command": "PYTHONPATH=\"$PWD/vendor/swiftLLM:$PWD/vendor/swiftLLM/csrc\" CUDA_VISIBLE_DEVICES=5 .venv/bin/python vendor/swiftLLM/examples/offline.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+      "output": "results/baseline/swiftllm_precision_noop_1b.log"
+    },
+    {
+      "name": "swiftllm_metadata_smoke",
+      "cuda_visible_devices": "5",
+      "command": "PYTHONPATH=\"$PWD/vendor/swiftLLM:$PWD/vendor/swiftLLM/csrc\" CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/swiftllm_precision_smoke.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 --output results/baseline/swiftllm_precision_metadata_smoke.json",
+      "output": "results/baseline/swiftllm_precision_metadata_smoke.json"
+    },
+    {
+      "name": "qkv_matrix_llama32_1b",
+      "cuda_visible_devices": "5",
+      "command": "CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/qkv_sensitivity.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 --output results/sensitivity/llama32_1b_qkv_matrix.json --max-prompts 8 --decode-tokens 4 --bits 4 8 16 --device cuda:0",
+      "output": "results/sensitivity/llama32_1b_qkv_matrix.json"
+    },
+    {
+      "name": "qkv_layer_sweep_llama32_1b",
+      "cuda_visible_devices": "5",
+      "command": "CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/qkv_sensitivity.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 --output results/sensitivity/llama32_1b_qkv_matrix_layer_sweep.json --max-prompts 8 --decode-tokens 4 --bits 4 8 16 --layer-sweep --device cuda:0",
+      "output": "results/sensitivity/llama32_1b_qkv_matrix_layer_sweep.json"
+    },
+    {
+      "name": "qkv_matrix_llama31_8b",
+      "cuda_visible_devices": "6",
+      "command": "CUDA_VISIBLE_DEVICES=6 .venv/bin/python scripts/qkv_sensitivity.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b --output results/sensitivity/llama31_8b_qkv_matrix.json --max-prompts 8 --decode-tokens 4 --bits 4 8 16 --device cuda:0",
+      "output": "results/sensitivity/llama31_8b_qkv_matrix.json"
+    },
+    {
+      "name": "qkv_layer_sweep_llama31_8b",
+      "cuda_visible_devices": "6",
+      "command": "CUDA_VISIBLE_DEVICES=6 .venv/bin/python scripts/qkv_sensitivity.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b --output results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json --max-prompts 4 --decode-tokens 4 --bits 4 8 16 --layer-sweep --device cuda:0",
+      "output": "results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json"
+    },
+    {
+      "name": "unit_tests",
+      "cuda_visible_devices": "none",
+      "command": "PYTHONPATH=\"$PWD/vendor/swiftLLM:$PWD/vendor/swiftLLM/csrc\" .venv/bin/python -m unittest discover -s tests -v",
+      "output": "results/baseline/unit-tests.log"
+    },
+    {
+      "name": "artifact_verifier",
+      "cuda_visible_devices": "none",
+      "command": "PYTHONPATH= .venv/bin/python scripts/verify_artifacts.py",
+      "output": "stdout (pass recorded in this manifest's audit run)"
+    }
+  ]
+}

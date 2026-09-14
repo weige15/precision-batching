@@ -1,0 +1,12 @@
+test_default_profile_is_all_fp16 (test_precision.PrecisionMetadataTests.test_default_profile_is_all_fp16) ... ok
+test_eager_proxy_supports_request_specific_bits (test_precision.PrecisionMetadataTests.test_eager_proxy_supports_request_specific_bits) ... ok
+test_fp16_linear_matches_legacy_operation (test_precision.PrecisionMetadataTests.test_fp16_linear_matches_legacy_operation) ... ok
+test_invalid_api_profile_is_a_422 (test_precision.PrecisionMetadataTests.test_invalid_api_profile_is_a_422) ... ok
+test_mapping_rejects_unknown_fields (test_precision.PrecisionMetadataTests.test_mapping_rejects_unknown_fields) ... ok
+test_request_carries_profile (test_precision.PrecisionMetadataTests.test_request_carries_profile) ... ok
+test_precision_metadata_does_not_change_fcfs_admission (test_precision.SchedulerSemanticsTests.test_precision_metadata_does_not_change_fcfs_admission) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.004s
+
+OK
