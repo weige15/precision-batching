@@ -1,0 +1,367 @@
+{
+  "schema": "kv-additional-request-v2",
+  "status": "completed",
+  "model_family": "llama31_8b",
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+  "model_files": [
+    {
+      "name": "config.json",
+      "bytes": 826,
+      "sha256": "54acfad3cffe057640904ca8a1e83525e6551c70c7a04c641f5a9eda0bbf64bd"
+    },
+    {
+      "name": "model-00001-of-00004.safetensors",
+      "bytes": 4976698672,
+      "sha256": null
+    },
+    {
+      "name": "model-00002-of-00004.safetensors",
+      "bytes": 4999802720,
+      "sha256": null
+    },
+    {
+      "name": "model-00003-of-00004.safetensors",
+      "bytes": 4915916176,
+      "sha256": null
+    },
+    {
+      "name": "model-00004-of-00004.safetensors",
+      "bytes": 1168138808,
+      "sha256": null
+    },
+    {
+      "name": "model.safetensors.index.json",
+      "bytes": 23950,
+      "sha256": "146776fce3f6db1103aa6f249e65ee5544c5923ce6f971b092eee79aa6e5d37b"
+    }
+  ],
+  "context_tokens": 2048,
+  "decode_tokens": 256,
+  "base_batch": 13,
+  "budget": {
+    "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+    "torch": "2.4.0+cu121",
+    "cuda_runtime": "12.1",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "capability": [
+      8,
+      6
+    ],
+    "total_device_memory_bytes": 25296044032,
+    "declared_budget_fraction": 0.9,
+    "declared_budget_bytes": 22766439628,
+    "declared_budget_mib": 21711.76875,
+    "visible_devices": "4"
+  },
+  "provenance": {
+    "git_head": "39e4f3256948dfd917b9af6ae515e4f4e9e59aca",
+    "source_sha256": "4823814f68ad9a0c714d7950c91eae51386c6cd46f2af8ed1d8b365bec039421",
+    "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d"
+  },
+  "protocol": "base batch is prefetched, then one additional request is allocated in a fresh exact-pool and one-extra-pool replay; no scheduler",
+  "exact_pool": {
+    "pool_groups": 13,
+    "pool_blocks": 1664,
+    "before": {
+      "allocator": {
+        "allocated_bytes": 19583790080,
+        "reserved_bytes": 20155727872,
+        "peak_allocated_bytes": 19583790080,
+        "peak_reserved_bytes": 20155727872
+      },
+      "blocks": {
+        "free_blocks": 1664,
+        "allocated_blocks": 0,
+        "sequence_block_counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      },
+      "cache_capacity_bytes": 3489660928,
+      "pages_per_request": 128,
+      "pool_blocks": 1664
+    },
+    "after_base": {
+      "allocator": {
+        "allocated_bytes": 19592309760,
+        "reserved_bytes": 22336765952,
+        "peak_allocated_bytes": 21998482944,
+        "peak_reserved_bytes": 22336765952
+      },
+      "blocks": {
+        "free_blocks": 0,
+        "allocated_blocks": 1664,
+        "sequence_block_counts": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      }
+    },
+    "additional_request": {
+      "status": "failed",
+      "error": {
+        "type": "RuntimeError",
+        "message": "No enough free blocks available on GPU (1664 in total, 0 free, 128 requested)",
+        "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_additional_request_v2.py\", line 59, in one_pool\n    model.forward([prompt_lists[base_batch]], [base_batch], [], return_logits=False)\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/model.py\", line 338, in forward\n    self.gpu_block_manager.allocate_blocks_for_seqs(\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/block_manager.py\", line 75, in allocate_blocks_for_seqs\n    new_blocks = self._allocate_blocks(torch.sum(block_needed).item())\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/block_manager.py\", line 49, in _allocate_blocks\n    raise RuntimeError(f\"No enough free blocks available on {self.device_name} ({self.num_blocks} in total, {self.num_free_blocks} free, {num_blocks} requested)\")\nRuntimeError: No enough free blocks available on GPU (1664 in total, 0 free, 128 requested)\n"
+      },
+      "allocator": {
+        "allocated_bytes": 19592321024,
+        "reserved_bytes": 22336765952,
+        "peak_allocated_bytes": 21998482944,
+        "peak_reserved_bytes": 22336765952
+      },
+      "blocks": {
+        "free_blocks": 0,
+        "allocated_blocks": 1664,
+        "sequence_block_counts": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      }
+    },
+    "released": {
+      "allocator": {
+        "allocated_bytes": 19592309760,
+        "reserved_bytes": 22336765952,
+        "peak_allocated_bytes": 21998482944,
+        "peak_reserved_bytes": 22336765952
+      },
+      "blocks": {
+        "free_blocks": 1664,
+        "allocated_blocks": 0,
+        "sequence_block_counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      }
+    }
+  },
+  "one_extra_pool": {
+    "pool_groups": 14,
+    "pool_blocks": 1792,
+    "before": {
+      "allocator": {
+        "allocated_bytes": 19860745216,
+        "reserved_bytes": 20449329152,
+        "peak_allocated_bytes": 21998482944,
+        "peak_reserved_bytes": 22336765952
+      },
+      "blocks": {
+        "free_blocks": 1792,
+        "allocated_blocks": 0,
+        "sequence_block_counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      },
+      "cache_capacity_bytes": 3758096384,
+      "pages_per_request": 128,
+      "pool_blocks": 1792
+    },
+    "after_base": {
+      "allocator": {
+        "allocated_bytes": 19860745216,
+        "reserved_bytes": 22630367232,
+        "peak_allocated_bytes": 22266918400,
+        "peak_reserved_bytes": 22630367232
+      },
+      "blocks": {
+        "free_blocks": 128,
+        "allocated_blocks": 1664,
+        "sequence_block_counts": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      }
+    },
+    "additional_request": {
+      "status": "completed",
+      "allocator": {
+        "allocated_bytes": 19860745216,
+        "reserved_bytes": 22630367232,
+        "peak_allocated_bytes": 22266918400,
+        "peak_reserved_bytes": 22630367232
+      },
+      "blocks": {
+        "free_blocks": 0,
+        "allocated_blocks": 1792,
+        "sequence_block_counts": [
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          128,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      },
+      "allocated_additional_blocks": 128
+    },
+    "released": {
+      "allocator": {
+        "allocated_bytes": 19860745216,
+        "reserved_bytes": 22630367232,
+        "peak_allocated_bytes": 22266918400,
+        "peak_reserved_bytes": 22630367232
+      },
+      "blocks": {
+        "free_blocks": 1792,
+        "allocated_blocks": 0,
+        "sequence_block_counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "block_table_shape": [
+          15,
+          130
+        ]
+      }
+    }
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_additional_request_v2.py",
+      "--output",
+      "results/kv-capacity-v2/additional-request/llama31_8b_c2048_base13.json",
+      "--model-family",
+      "llama31_8b",
+      "--context-tokens",
+      "2048",
+      "--decode-tokens",
+      "256",
+      "--base-batch",
+      "13",
+      "--device",
+      "cuda:0"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

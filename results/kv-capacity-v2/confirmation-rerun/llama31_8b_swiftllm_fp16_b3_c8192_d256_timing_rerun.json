@@ -1,0 +1,278 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "completed",
+  "method": "swiftllm_fp16",
+  "model_family": "llama31_8b",
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+  "model_files": [
+    {
+      "name": "config.json",
+      "bytes": 826,
+      "sha256": "54acfad3cffe057640904ca8a1e83525e6551c70c7a04c641f5a9eda0bbf64bd"
+    },
+    {
+      "name": "model-00001-of-00004.safetensors",
+      "bytes": 4976698672,
+      "sha256": null
+    },
+    {
+      "name": "model-00002-of-00004.safetensors",
+      "bytes": 4999802720,
+      "sha256": null
+    },
+    {
+      "name": "model-00003-of-00004.safetensors",
+      "bytes": 4915916176,
+      "sha256": null
+    },
+    {
+      "name": "model-00004-of-00004.safetensors",
+      "bytes": 1168138808,
+      "sha256": null
+    },
+    {
+      "name": "model.safetensors.index.json",
+      "bytes": 23950,
+      "sha256": "146776fce3f6db1103aa6f249e65ee5544c5923ce6f971b092eee79aa6e5d37b"
+    }
+  ],
+  "context_tokens": 8192,
+  "decode_tokens": 256,
+  "batch_size": 3,
+  "instrumentation": "timing",
+  "budget": {
+    "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+    "torch": "2.4.0+cu121",
+    "cuda_runtime": "12.1",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "capability": [
+      8,
+      6
+    ],
+    "total_device_memory_bytes": 25296044032,
+    "declared_budget_fraction": 0.9,
+    "declared_budget_bytes": 22766439628,
+    "declared_budget_mib": 21711.76875,
+    "visible_devices": "2"
+  },
+  "provenance": {
+    "branch": "structured-precision-evidence",
+    "git_head": "0635054be6740d20ef0bab1a82601f438b2042ce",
+    "source_files": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "scripts/reproduce_kivi.py",
+      "vendor/swiftLLM/swiftllm/worker/model.py",
+      "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+      "vendor/public/KIVI/models/llama_kivi.py",
+      "vendor/public/KIVI/quant/new_pack.py",
+      "vendor/public/KIVI/quant/matmul.py"
+    ],
+    "source_sha256": "c33f227a18e9f75caf2dc5e07e7def57ca2766fb2f10165aab00fad9582fa0be",
+    "kivi_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+    "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d"
+  },
+  "method_config": {
+    "weights_dtype": "torch.float16",
+    "kv_backend": "unchanged SwiftLLM dense FP16 allocator",
+    "allocated_cache_capacity_bytes": 3321888768,
+    "pages_reserved": 1584
+  },
+  "model_loaded_allocator": {
+    "allocated_bytes": 19399259136,
+    "reserved_bytes": 19987955712,
+    "peak_allocated_bytes": 19399259136,
+    "peak_reserved_bytes": 19987955712
+  },
+  "run": {
+    "prompt_tokens": 8192,
+    "batch_size": 3,
+    "decode_tokens": 256,
+    "prompt_kind": "distinct-seed-repeated-token-mechanism-workload",
+    "target_inputs_prepared_before_timing": true,
+    "repetitions": [
+      {
+        "prefill_ms": 6239.500250958372,
+        "decode_ms": 7560.897332965396,
+        "trace": [],
+        "final": {
+          "phase": "decode_end",
+          "token_position": 8448,
+          "cache": {
+            "mode": "dense_fp16",
+            "logical_payload_bytes": 3321888768,
+            "unique_live_storage_bytes": 3321888768,
+            "allocated_cache_capacity_bytes": 3321888768,
+            "used_pages": 1584,
+            "per_sequence_pages": [
+              528,
+              528,
+              528
+            ],
+            "both_k_and_v": true
+          },
+          "allocator": {
+            "allocated_bytes": 19408548352,
+            "reserved_bytes": 22026387456,
+            "peak_allocated_bytes": 21628861952,
+            "peak_reserved_bytes": 22026387456
+          }
+        },
+        "base_model_runtime": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 19407778816,
+          "peak_reserved_bytes": 22026387456
+        },
+        "peak": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456
+        },
+        "budget_check": {
+          "declared_budget_bytes": 22766439628,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456,
+          "within_budget_allocated": true,
+          "within_budget_reserved": true,
+          "within_budget": true
+        }
+      },
+      {
+        "prefill_ms": 6260.700847022235,
+        "decode_ms": 7573.499593010638,
+        "trace": [],
+        "final": {
+          "phase": "decode_end",
+          "token_position": 8448,
+          "cache": {
+            "mode": "dense_fp16",
+            "logical_payload_bytes": 3321888768,
+            "unique_live_storage_bytes": 3321888768,
+            "allocated_cache_capacity_bytes": 3321888768,
+            "used_pages": 1584,
+            "per_sequence_pages": [
+              528,
+              528,
+              528
+            ],
+            "both_k_and_v": true
+          },
+          "allocator": {
+            "allocated_bytes": 19408548352,
+            "reserved_bytes": 22026387456,
+            "peak_allocated_bytes": 21628861952,
+            "peak_reserved_bytes": 22026387456
+          }
+        },
+        "base_model_runtime": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 19407778816,
+          "peak_reserved_bytes": 22026387456
+        },
+        "peak": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456
+        },
+        "budget_check": {
+          "declared_budget_bytes": 22766439628,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456,
+          "within_budget_allocated": true,
+          "within_budget_reserved": true,
+          "within_budget": true
+        }
+      },
+      {
+        "prefill_ms": 6280.656224000268,
+        "decode_ms": 7584.021209040657,
+        "trace": [],
+        "final": {
+          "phase": "decode_end",
+          "token_position": 8448,
+          "cache": {
+            "mode": "dense_fp16",
+            "logical_payload_bytes": 3321888768,
+            "unique_live_storage_bytes": 3321888768,
+            "allocated_cache_capacity_bytes": 3321888768,
+            "used_pages": 1584,
+            "per_sequence_pages": [
+              528,
+              528,
+              528
+            ],
+            "both_k_and_v": true
+          },
+          "allocator": {
+            "allocated_bytes": 19408548352,
+            "reserved_bytes": 22026387456,
+            "peak_allocated_bytes": 21628861952,
+            "peak_reserved_bytes": 22026387456
+          }
+        },
+        "base_model_runtime": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 19407778816,
+          "peak_reserved_bytes": 22026387456
+        },
+        "peak": {
+          "allocated_bytes": 19407778816,
+          "reserved_bytes": 22026387456,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456
+        },
+        "budget_check": {
+          "declared_budget_bytes": 22766439628,
+          "peak_allocated_bytes": 21628861952,
+          "peak_reserved_bytes": 22026387456,
+          "within_budget_allocated": true,
+          "within_budget_reserved": true,
+          "within_budget": true
+        }
+      }
+    ],
+    "memory_instrumented": false,
+    "timing_boundary": "synchronized wall-clock around complete unchanged SwiftLLM model.forward calls; no quality scoring or per-token host synchronization"
+  },
+  "completed_decode_steps": [
+    256,
+    256,
+    256
+  ],
+  "feasible": true,
+  "post_release_allocator": {
+    "allocated_bytes": 8519680,
+    "reserved_bytes": 20971520,
+    "peak_allocated_bytes": 21628861952,
+    "peak_reserved_bytes": 22026387456
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/confirmation-rerun/llama31_8b_swiftllm_fp16_b3_c8192_d256_timing_rerun.json",
+      "--method",
+      "swiftllm_fp16",
+      "--model-family",
+      "llama31_8b",
+      "--context-tokens",
+      "8192",
+      "--decode-tokens",
+      "256",
+      "--batch-size",
+      "3",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "1",
+      "--repeats",
+      "3"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

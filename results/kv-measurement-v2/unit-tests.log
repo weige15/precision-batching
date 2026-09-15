@@ -1,0 +1,33 @@
+test_append_requantizes_in_place_without_changing_format (test_kv_cache.KVPageTests.test_append_requantizes_in_place_without_changing_format) ... ok
+test_batched_conversion_rejects_non_int8_target (test_kv_cache.KVPageTests.test_batched_conversion_rejects_non_int8_target) ... ok
+test_batched_int8_conversion_reclaims_once_and_preserves_metadata (test_kv_cache.KVPageTests.test_batched_int8_conversion_reclaims_once_and_preserves_metadata) ... ok
+test_batched_promotion_restores_fp16_storage (test_kv_cache.KVPageTests.test_batched_promotion_restores_fp16_storage) ... ok
+test_compressed_default_writes_without_fp16_shadow (test_kv_cache.KVPageTests.test_compressed_default_writes_without_fp16_shadow) ... ok
+test_fp16_int8_int4_round_trip_and_exact_reclamation (test_kv_cache.KVPageTests.test_fp16_int8_int4_round_trip_and_exact_reclamation) ... ok
+test_invalid_async_components_are_rejected (test_kv_cache.KVPageTests.test_invalid_async_components_are_rejected) ... ok
+test_k_only_and_v_only_formats_are_explicit (test_kv_cache.KVPageTests.test_k_only_and_v_only_formats_are_explicit) ... ok
+test_mixed_format_attention_matches_explicit_page_reference (test_kv_cache.KVPageTests.test_mixed_format_attention_matches_explicit_page_reference) ... ok
+test_runtime_cli_exposes_only_lossless_dense_cache_mode (test_kv_cache.KVPageTests.test_runtime_cli_exposes_only_lossless_dense_cache_mode) ... ok
+test_dense_layout_permutes_token_and_head_axes_instead_of_reshape (test_kv_measurement_v2.KVMeasurementV2Tests.test_dense_layout_permutes_token_and_head_axes_instead_of_reshape) ... ok
+test_dynamic_cache_accounting_includes_k_and_v_and_deduplicates_aliases (test_kv_measurement_v2.KVMeasurementV2Tests.test_dynamic_cache_accounting_includes_k_and_v_and_deduplicates_aliases) ... ok
+test_request_local_selection_follows_nonidentity_physical_table (test_kv_measurement_v2.KVMeasurementV2Tests.test_request_local_selection_follows_nonidentity_physical_table) ... ok
+test_storage_ledger_counts_an_aliased_batched_storage_once (test_kv_measurement_v2.KVMeasurementV2Tests.test_storage_ledger_counts_an_aliased_batched_storage_once) ... ok
+test_v2_performance_boundary_is_separate_from_quality_scoring (test_kv_measurement_v2.KVMeasurementV2Tests.test_v2_performance_boundary_is_separate_from_quality_scoring) ... ok
+test_default_profile_is_all_fp16 (test_precision.PrecisionMetadataTests.test_default_profile_is_all_fp16) ... ok
+test_eager_proxy_supports_request_specific_bits (test_precision.PrecisionMetadataTests.test_eager_proxy_supports_request_specific_bits) ... ok
+test_fp16_linear_matches_legacy_operation (test_precision.PrecisionMetadataTests.test_fp16_linear_matches_legacy_operation) ... ok
+test_invalid_api_profile_is_a_422 (test_precision.PrecisionMetadataTests.test_invalid_api_profile_is_a_422) ... ok
+test_mapping_rejects_unknown_fields (test_precision.PrecisionMetadataTests.test_mapping_rejects_unknown_fields) ... ok
+test_request_carries_profile (test_precision.PrecisionMetadataTests.test_request_carries_profile) ... ok
+test_precision_metadata_does_not_change_fcfs_admission (test_precision.SchedulerSemanticsTests.test_precision_metadata_does_not_change_fcfs_admission) ... ok
+test_manual_representation_cases (test_structured_precision.StorageAccountingTests.test_manual_representation_cases) ... ok
+test_neighbor_generation_contains_compensating_pair (test_structured_precision.StorageAccountingTests.test_neighbor_generation_contains_compensating_pair) ... ok
+test_profile_cost_is_sum_of_unit_costs (test_structured_precision.StorageAccountingTests.test_profile_cost_is_sum_of_unit_costs) ... ok
+test_projection_enumeration_is_three_to_the_fifth (test_structured_precision.StorageAccountingTests.test_projection_enumeration_is_three_to_the_fifth) ... ok
+test_stability_requires_two_of_three_shards_and_tolerance (test_structured_precision.StorageAccountingTests.test_stability_requires_two_of_three_shards_and_tolerance) ... ok
+test_storage_delta_uses_exact_integer_bytes (test_structured_precision.StorageAccountingTests.test_storage_delta_uses_exact_integer_bytes) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 0.038s
+
+OK

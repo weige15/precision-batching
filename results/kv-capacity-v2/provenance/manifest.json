@@ -1,0 +1,87 @@
+{
+  "schema": "kv-capacity-provenance-v2",
+  "plan_sha256": "bf846c5a9eaac3bea3db59174744591419c90df5cd0c83ba020d8d9f52228aec",
+  "repository_head": "39e4f3256948dfd917b9af6ae515e4f4e9e59aca",
+  "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d",
+  "kivi_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+  "source_snapshots": {
+    "source-82_capacity": {
+      "directory": "results/kv-capacity-v2/provenance/source-82",
+      "purpose": "hf and KIVI timing accepted before unrelated Llama-3.1 Swift loader repair",
+      "snapshot_sha256": "9413d5aca4580c24a34c3447bf130ceb4a18cbd1a47af84185c1469b01830922",
+      "artifact_source_sha256": "82ec3b3b1255092fc54d997c37486446cf43d781655938a83015f899ac6eca13"
+    },
+    "source-current_quality_postfix": {
+      "directory": "results/kv-capacity-v2/provenance/source-current",
+      "purpose": "post-fix SwiftLLM timing and held-out quality",
+      "snapshot_sha256": "6f4767568b2da54c853ab19b9150fc8d5d5958d0bd48ce27e355a4862b3cb73e",
+      "artifact_source_sha256": "00040260d41348a00670f2021e3e287724ec4ed2ebc3274414c9ce1db73034c7",
+      "quality_source_sha256": "f7dadf7f8b0e94ab5eec5543536b0a5de48b9451274b532d2a945ab51f58bed4"
+    }
+  },
+  "models": {
+    "llama32_1b": {
+      "snapshot": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+      "files": [
+        {
+          "name": "config.json",
+          "bytes": 877,
+          "sha256": "2febf68cea25bf4611be02b7536f2488a5ba523bb1134986e3610152abe74fdb"
+        },
+        {
+          "name": "model.safetensors",
+          "bytes": 2471645608,
+          "sha256": "1ff795ff6a07e6a68085d206fb84417da2f083f68391c2843cd2b8ac6df8538f"
+        }
+      ]
+    },
+    "llama31_8b": {
+      "snapshot": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+      "files": [
+        {
+          "name": "config.json",
+          "bytes": 826,
+          "sha256": "54acfad3cffe057640904ca8a1e83525e6551c70c7a04c641f5a9eda0bbf64bd"
+        },
+        {
+          "name": "model-00001-of-00004.safetensors",
+          "bytes": 4976698672,
+          "sha256": "f8b9704ab09cdeb097aa4a0a24bca96f906eec36bad63ab495bc21475058601b"
+        },
+        {
+          "name": "model-00002-of-00004.safetensors",
+          "bytes": 4999802720,
+          "sha256": "c28b25e7541751056ee126627e007f8d4288319733285e9f7b17b9ff6eb313f0"
+        },
+        {
+          "name": "model-00003-of-00004.safetensors",
+          "bytes": 4915916176,
+          "sha256": "d8e9504dd4e4a146d484c52a97584ec14dac92237c46b064934af67a85e7d383"
+        },
+        {
+          "name": "model-00004-of-00004.safetensors",
+          "bytes": 1168138808,
+          "sha256": "e4486f35c040f683f7d790354f66c169c109eb9fa0954a4a35d7c458a108405d"
+        },
+        {
+          "name": "model.safetensors.index.json",
+          "bytes": 23950,
+          "sha256": "146776fce3f6db1103aa6f249e65ee5544c5923ce6f971b092eee79aa6e5d37b"
+        }
+      ]
+    }
+  },
+  "repository_head_at_manifest_update": "44669b3d67570fd6e26eba60f70af8c40663f0de",
+  "final_artifacts": {
+    "plan_sha256": "bf846c5a9eaac3bea3db59174744591419c90df5cd0c83ba020d8d9f52228aec",
+    "report_sha256": "69876ec43ae85b211f8a201096d473f8401fa3ca0ed413440f18b7c4b23ea4c4",
+    "compat_report_sha256": "54e06fbe09a8a15abf0ca253dcb498a39a8ee8298e93d20b0e358b856ce4abdd",
+    "completion_audit_sha256": "aaee1322dc7a4a3497c409fbad6f17d73639d71913813624a0bf1942e74164e1",
+    "summary_sha256": "0a3c80b834f1e79711147f7f1908e53b83658dc854ee5376809a88c9e07c06a8",
+    "verification_log_sha256": "af2b4c6b028d24a2cf3bbb2767b4769d0e2af1e5a9cd80e47c324caa4c4c186b",
+    "commands_sha256": "98846904421c6d0e69e9762e40a6fd331e18e12cbad76ceed9cb03a8e1e00bd5",
+    "timing_cells": 52,
+    "quality_artifacts": 10,
+    "verdict": "GO"
+  }
+}

@@ -1,0 +1,5718 @@
+{
+  "schema": "kv-capacity-quality-v2",
+  "status": "completed",
+  "model_family": "llama31_8b",
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+  "model_files": [
+    {
+      "name": "config.json",
+      "bytes": 826,
+      "sha256": "54acfad3cffe057640904ca8a1e83525e6551c70c7a04c641f5a9eda0bbf64bd"
+    },
+    {
+      "name": "model-00001-of-00004.safetensors",
+      "bytes": 4976698672,
+      "sha256": null
+    },
+    {
+      "name": "model-00002-of-00004.safetensors",
+      "bytes": 4999802720,
+      "sha256": null
+    },
+    {
+      "name": "model-00003-of-00004.safetensors",
+      "bytes": 4915916176,
+      "sha256": null
+    },
+    {
+      "name": "model-00004-of-00004.safetensors",
+      "bytes": 1168138808,
+      "sha256": null
+    },
+    {
+      "name": "model.safetensors.index.json",
+      "bytes": 23950,
+      "sha256": "146776fce3f6db1103aa6f249e65ee5544c5923ce6f971b092eee79aa6e5d37b"
+    }
+  ],
+  "method": "kivi4",
+  "method_config": {
+    "weights_dtype": "torch.float16",
+    "kv_backend": "KIVI native K4V4",
+    "k_bits": 4,
+    "v_bits": 4,
+    "group_size": 32,
+    "residual_length": 32,
+    "wrapper_logits_avoided": true,
+    "upstream_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6"
+  },
+  "reference": {
+    "kind": "corrected_transformers_fp16_control",
+    "config": {
+      "weights_dtype": "torch.float16",
+      "kv_backend": "Transformers DynamicCache FP16",
+      "attention_implementation": "sdpa"
+    }
+  },
+  "provenance": {
+    "git_head": "44669b3d67570fd6e26eba60f70af8c40663f0de",
+    "source_files": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "scripts/reproduce_kivi.py",
+      "vendor/swiftLLM/swiftllm/worker/model.py",
+      "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+      "vendor/public/KIVI/models/llama_kivi.py",
+      "vendor/public/KIVI/quant/new_pack.py",
+      "vendor/public/KIVI/quant/matmul.py"
+    ],
+    "source_sha256": "f7dadf7f8b0e94ab5eec5543536b0a5de48b9451274b532d2a945ab51f58bed4",
+    "kivi_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+    "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d"
+  },
+  "sampling": {
+    "long_context_dataset": "wikitext-2-raw-v1/validation",
+    "long_context_count": 8,
+    "long_context_window_tokens": 2048,
+    "continuation_tokens": 32,
+    "long_context_query": {
+      "kind": "identified_continuation_boundary",
+      "recorded_per_sample": true,
+      "planted": false
+    },
+    "free_running_dataset": "Rowan/hellaswag/validation",
+    "free_running_prompt_min_tokens": 64,
+    "free_running_count": 8,
+    "generation_tokens": 64,
+    "eos_token_ids": [
+      128001
+    ],
+    "heldout_loaded_before_candidate": true,
+    "artificial_prompt_repetition": false,
+    "eos_handled": true
+  },
+  "long_context_information_use": {
+    "per_sample": [
+      {
+        "sample_id": "wikitext_validation_window_00_start_27849",
+        "window_start": 27849,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 27849,
+          "context_token_end_exclusive": 29897,
+          "target_token_start": 29897,
+          "target_token_end_exclusive": 29929
+        },
+        "nll_delta": -0.0004848584095498154,
+        "reference_nll": 0.9227978963443775,
+        "candidate_nll": 0.9223130379348277,
+        "top1_match": 1.0,
+        "kl_mean": 0.0014141963835205829,
+        "logit_mse_mean": 0.006837142303197652,
+        "per_token_divergence": [
+          {
+            "nll_delta": -0.0003796815872192383,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.1175043204711983e-06,
+            "logit_mse": 1.1049651220673695e-05
+          },
+          {
+            "nll_delta": -0.03615212440490723,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009691269369795918,
+            "logit_mse": 0.005768384784460068
+          },
+          {
+            "nll_delta": 0.016521111130714417,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002968728309497237,
+            "logit_mse": 0.016735412180423737
+          },
+          {
+            "nll_delta": -0.005296394228935242,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004291427321732044,
+            "logit_mse": 0.023312097415328026
+          },
+          {
+            "nll_delta": -0.07789826393127441,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.005824873223900795,
+            "logit_mse": 0.009939131326973438
+          },
+          {
+            "nll_delta": -0.057098954916000366,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.005266093648970127,
+            "logit_mse": 0.006636078003793955
+          },
+          {
+            "nll_delta": -0.00020887702703475952,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.0141949789831415e-05,
+            "logit_mse": 0.009742118418216705
+          },
+          {
+            "nll_delta": 0.0005676597356796265,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.463756729615852e-05,
+            "logit_mse": 0.002579562133178115
+          },
+          {
+            "nll_delta": -0.0289839506149292,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005504883010871708,
+            "logit_mse": 0.006418732460588217
+          },
+          {
+            "nll_delta": 0.0005919337272644043,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.557220381684601e-05,
+            "logit_mse": 0.008606904186308384
+          },
+          {
+            "nll_delta": 4.2175292037427425e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.929916945504374e-06,
+            "logit_mse": 0.008494207635521889
+          },
+          {
+            "nll_delta": 0.00012061884626746178,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.092207250825595e-05,
+            "logit_mse": 0.011356940492987633
+          },
+          {
+            "nll_delta": 0.03278984874486923,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.007252488750964403,
+            "logit_mse": 0.010494515299797058
+          },
+          {
+            "nll_delta": 0.0001881446223706007,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.652312807389535e-05,
+            "logit_mse": 0.014195575378835201
+          },
+          {
+            "nll_delta": 0.005168259143829346,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003904045734088868,
+            "logit_mse": 0.002856902778148651
+          },
+          {
+            "nll_delta": -5.364159733289853e-06,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.3421138684607286e-07,
+            "logit_mse": 0.007846764288842678
+          },
+          {
+            "nll_delta": 0.01940310001373291,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006297717918641865,
+            "logit_mse": 0.0023363197688013315
+          },
+          {
+            "nll_delta": -0.12576532363891602,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018999769818037748,
+            "logit_mse": 0.0039251819252967834
+          },
+          {
+            "nll_delta": 0.09453487396240234,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005414215847849846,
+            "logit_mse": 0.0029280725866556168
+          },
+          {
+            "nll_delta": -0.0031070448458194733,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00021279272914398462,
+            "logit_mse": 0.00618254579603672
+          },
+          {
+            "nll_delta": 0.07858753204345703,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0050878883339464664,
+            "logit_mse": 0.004700200632214546
+          },
+          {
+            "nll_delta": 0.01949632167816162,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0031540149357169867,
+            "logit_mse": 0.00679200841113925
+          },
+          {
+            "nll_delta": 0.003977954387664795,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005209146183915436,
+            "logit_mse": 0.0032252653036266565
+          },
+          {
+            "nll_delta": -0.009212851524353027,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011478057422209531,
+            "logit_mse": 0.0031762460712343454
+          },
+          {
+            "nll_delta": 0.012442439794540405,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001806091284379363,
+            "logit_mse": 0.00472124433144927
+          },
+          {
+            "nll_delta": 0.007210537791252136,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006277405191212893,
+            "logit_mse": 0.008370915427803993
+          },
+          {
+            "nll_delta": 0.040238022804260254,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009745680144988,
+            "logit_mse": 0.00414319010451436
+          },
+          {
+            "nll_delta": 0.010549426078796387,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00028234990895725787,
+            "logit_mse": 0.004126317333430052
+          },
+          {
+            "nll_delta": 0.0016369018703699112,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000140994307002984,
+            "logit_mse": 0.004474607761949301
+          },
+          {
+            "nll_delta": -0.005263328552246094,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011271011317148805,
+            "logit_mse": 0.0037621825467795134
+          },
+          {
+            "nll_delta": 0.00680677592754364,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00017196263070218265,
+            "logit_mse": 0.006666633766144514
+          },
+          {
+            "nll_delta": -0.017016947269439697,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002840053057298064,
+            "logit_mse": 0.00426324550062418
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_01_start_55699",
+        "window_start": 55699,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 55699,
+          "context_token_end_exclusive": 57747,
+          "target_token_start": 57747,
+          "target_token_end_exclusive": 57779
+        },
+        "nll_delta": -0.013963152921860456,
+        "reference_nll": 1.4506790967834604,
+        "candidate_nll": 1.4367159438616,
+        "top1_match": 0.96875,
+        "kl_mean": 0.0018432123455340843,
+        "logit_mse_mean": 0.017197547357454823,
+        "per_token_divergence": [
+          {
+            "nll_delta": 0.0007007718086242676,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.0202666999248322e-05,
+            "logit_mse": 3.779076359933242e-05
+          },
+          {
+            "nll_delta": -0.00045550987124443054,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.8290937077836134e-05,
+            "logit_mse": 0.011857498437166214
+          },
+          {
+            "nll_delta": 0.00013108900748193264,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.0266840035910718e-05,
+            "logit_mse": 0.010938992723822594
+          },
+          {
+            "nll_delta": -0.0003357867244631052,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.1387062335852534e-05,
+            "logit_mse": 0.009303561411798
+          },
+          {
+            "nll_delta": -0.003859877586364746,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023460551165044308,
+            "logit_mse": 0.006053262855857611
+          },
+          {
+            "nll_delta": -0.00027930736541748047,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004578978114295751,
+            "logit_mse": 0.0055643473751842976
+          },
+          {
+            "nll_delta": 0.07497167587280273,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0022871282417327166,
+            "logit_mse": 0.00477536441758275
+          },
+          {
+            "nll_delta": 0.00014560099225491285,
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.59569900057977e-06,
+            "logit_mse": 0.003712595207616687
+          },
+          {
+            "nll_delta": -0.006301403045654297,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013879425823688507,
+            "logit_mse": 0.00517904432490468
+          },
+          {
+            "nll_delta": 0.002833843231201172,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007100155344232917,
+            "logit_mse": 0.001802216051146388
+          },
+          {
+            "nll_delta": -0.0025942325592041016,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004714599053841084,
+            "logit_mse": 0.005792033858597279
+          },
+          {
+            "nll_delta": 0.02097541093826294,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008654984412714839,
+            "logit_mse": 0.004181483294814825
+          },
+          {
+            "nll_delta": -0.07244014739990234,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00173065229319036,
+            "logit_mse": 0.00594579940661788
+          },
+          {
+            "nll_delta": 0.06537723541259766,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018548357766121626,
+            "logit_mse": 0.009565329179167747
+          },
+          {
+            "nll_delta": 0.0010110791772603989,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011244334018556401,
+            "logit_mse": 0.01087539829313755
+          },
+          {
+            "nll_delta": 0.000386940548196435,
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.300363747868687e-05,
+            "logit_mse": 0.008493665605783463
+          },
+          {
+            "nll_delta": 0.0017016828060150146,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015863995940890163,
+            "logit_mse": 0.010130753740668297
+          },
+          {
+            "nll_delta": 0.005387425422668457,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002386740525253117,
+            "logit_mse": 0.0058515542186796665
+          },
+          {
+            "nll_delta": -0.03057682514190674,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001243550330400467,
+            "logit_mse": 0.007343444041907787
+          },
+          {
+            "nll_delta": -0.036542415618896484,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008751795394346118,
+            "logit_mse": 0.0034662396647036076
+          },
+          {
+            "nll_delta": 0.0080491304397583,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004855138249695301,
+            "logit_mse": 0.003703275928273797
+          },
+          {
+            "nll_delta": -0.049483299255371094,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.01008807122707367,
+            "logit_mse": 0.008658294565975666
+          },
+          {
+            "nll_delta": 0.010993078351020813,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002087427768856287,
+            "logit_mse": 0.010203545913100243
+          },
+          {
+            "nll_delta": -0.026677370071411133,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.006757419556379318,
+            "logit_mse": 0.01032330747693777
+          },
+          {
+            "nll_delta": -0.01349058747291565,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008448172593489289,
+            "logit_mse": 0.010936994105577469
+          },
+          {
+            "nll_delta": 0.00041070953011512756,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.3763986468547955e-05,
+            "logit_mse": 0.006378920748829842
+          },
+          {
+            "nll_delta": -0.0002967752516269684,
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.076634938130155e-05,
+            "logit_mse": 0.008959099650382996
+          },
+          {
+            "nll_delta": -0.00015611294656991959,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011312746937619522,
+            "logit_mse": 0.33025142550468445
+          },
+          {
+            "nll_delta": -0.004853248596191406,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.007747065741568804,
+            "logit_mse": 0.006351684685796499
+          },
+          {
+            "nll_delta": 0.006738774478435516,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00036406281287781894,
+            "logit_mse": 0.004639782011508942
+          },
+          {
+            "nll_delta": -0.3983492851257324,
+            "top1_match": false,
+            "kl_reference_to_candidate": 0.01760087162256241,
+            "logit_mse": 0.00782612431794405
+          },
+          {
+            "nll_delta": 5.6842516642063856e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.617275281925686e-06,
+            "logit_mse": 0.011218685656785965
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_02_start_83548",
+        "window_start": 83548,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 83548,
+          "context_token_end_exclusive": 85596,
+          "target_token_start": 85596,
+          "target_token_end_exclusive": 85628
+        },
+        "nll_delta": -0.0018104380542354193,
+        "reference_nll": 2.4747467384804622,
+        "candidate_nll": 2.472936300426227,
+        "top1_match": 1.0,
+        "kl_mean": 0.001282097299679208,
+        "logit_mse_mean": 0.0038605299506002666,
+        "per_token_divergence": [
+          {
+            "nll_delta": 7.775425910949707e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.317548806895502e-07,
+            "logit_mse": 2.101651807606686e-05
+          },
+          {
+            "nll_delta": 0.009815990924835205,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006223254604265094,
+            "logit_mse": 0.003043367061764002
+          },
+          {
+            "nll_delta": -0.04931211471557617,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00041158089879900217,
+            "logit_mse": 0.003143519861623645
+          },
+          {
+            "nll_delta": 0.008781611919403076,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00039320538053289056,
+            "logit_mse": 0.0024968634825199842
+          },
+          {
+            "nll_delta": -0.02673780918121338,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012750491732731462,
+            "logit_mse": 0.004855802748352289
+          },
+          {
+            "nll_delta": 0.0031118392944335938,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014194806572049856,
+            "logit_mse": 0.0032957401126623154
+          },
+          {
+            "nll_delta": -0.00704801082611084,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014208913780748844,
+            "logit_mse": 0.0029239056166261435
+          },
+          {
+            "nll_delta": 0.086639404296875,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014905608259141445,
+            "logit_mse": 0.002892852295190096
+          },
+          {
+            "nll_delta": 0.04876488447189331,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018724794499576092,
+            "logit_mse": 0.003464825451374054
+          },
+          {
+            "nll_delta": -0.007647991180419922,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008616427076049149,
+            "logit_mse": 0.0027706860564649105
+          },
+          {
+            "nll_delta": -0.04602241516113281,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002090665977448225,
+            "logit_mse": 0.005947073921561241
+          },
+          {
+            "nll_delta": -0.11465215682983398,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0034668080043047667,
+            "logit_mse": 0.006539164111018181
+          },
+          {
+            "nll_delta": -0.04141092300415039,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001056800945661962,
+            "logit_mse": 0.003982792142778635
+          },
+          {
+            "nll_delta": -0.006178557872772217,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023857050109654665,
+            "logit_mse": 0.004743627738207579
+          },
+          {
+            "nll_delta": 0.009168222546577454,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003654728934634477,
+            "logit_mse": 0.004107888787984848
+          },
+          {
+            "nll_delta": -0.015735864639282227,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007826141081750393,
+            "logit_mse": 0.0023992403876036406
+          },
+          {
+            "nll_delta": -0.05335187911987305,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000579503714106977,
+            "logit_mse": 0.0013840175233781338
+          },
+          {
+            "nll_delta": -0.0011161565780639648,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023271846293937415,
+            "logit_mse": 0.004318126942962408
+          },
+          {
+            "nll_delta": 0.12364649772644043,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015654237940907478,
+            "logit_mse": 0.004743740428239107
+          },
+          {
+            "nll_delta": 0.06249570846557617,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009825726738199592,
+            "logit_mse": 0.0034113910514861345
+          },
+          {
+            "nll_delta": -0.04287993907928467,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002184519311413169,
+            "logit_mse": 0.005848282016813755
+          },
+          {
+            "nll_delta": -0.035504817962646484,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001463986118324101,
+            "logit_mse": 0.0029661678709089756
+          },
+          {
+            "nll_delta": -4.0001701563596725e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.651320397097152e-06,
+            "logit_mse": 0.005916684865951538
+          },
+          {
+            "nll_delta": -0.0002813752507790923,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.8018866942147724e-05,
+            "logit_mse": 0.0056178574450314045
+          },
+          {
+            "nll_delta": 0.008540630340576172,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010287639452144504,
+            "logit_mse": 0.00272197974845767
+          },
+          {
+            "nll_delta": 0.07190513610839844,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002189408987760544,
+            "logit_mse": 0.003454185789451003
+          },
+          {
+            "nll_delta": -0.059906959533691406,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008607579511590302,
+            "logit_mse": 0.0038769172970205545
+          },
+          {
+            "nll_delta": -0.07447242736816406,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0032029824797064066,
+            "logit_mse": 0.006374195218086243
+          },
+          {
+            "nll_delta": -0.0007277410477399826,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.8023466661106795e-05,
+            "logit_mse": 0.0036117532290518284
+          },
+          {
+            "nll_delta": 0.02617168426513672,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0030552647076547146,
+            "logit_mse": 0.0049414196982979774
+          },
+          {
+            "nll_delta": 0.03364276885986328,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0049458518624305725,
+            "logit_mse": 0.004498262889683247
+          },
+          {
+            "nll_delta": 0.032330989837646484,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008807858102954924,
+            "logit_mse": 0.003223610110580921
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_03_start_111398",
+        "window_start": 111398,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 111398,
+          "context_token_end_exclusive": 113446,
+          "target_token_start": 113446,
+          "target_token_end_exclusive": 113478
+        },
+        "nll_delta": 0.0015721638656032155,
+        "reference_nll": 1.7196668987967314,
+        "candidate_nll": 1.7212390626623346,
+        "top1_match": 1.0,
+        "kl_mean": 0.0008495725354329409,
+        "logit_mse_mean": 0.007292974756978765,
+        "per_token_divergence": [
+          {
+            "nll_delta": -0.002312898635864258,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.8104284865548834e-05,
+            "logit_mse": 1.580787284183316e-05
+          },
+          {
+            "nll_delta": -0.1703803539276123,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015619974583387375,
+            "logit_mse": 0.0067781987600028515
+          },
+          {
+            "nll_delta": 0.0321502685546875,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00018100340093951672,
+            "logit_mse": 0.009030804969370365
+          },
+          {
+            "nll_delta": -0.007590770721435547,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001275372225791216,
+            "logit_mse": 0.004285240545868874
+          },
+          {
+            "nll_delta": -0.03245258331298828,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018902583979070187,
+            "logit_mse": 0.005732394754886627
+          },
+          {
+            "nll_delta": 0.0008159428834915161,
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.248839054023847e-05,
+            "logit_mse": 0.0075535899959504604
+          },
+          {
+            "nll_delta": 0.0010284301824867725,
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.58675703057088e-05,
+            "logit_mse": 0.004204768221825361
+          },
+          {
+            "nll_delta": 0.008235163986682892,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006216882029548287,
+            "logit_mse": 0.00523539399728179
+          },
+          {
+            "nll_delta": 0.0011444091796875,
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.011004345258698e-05,
+            "logit_mse": 0.005736165214329958
+          },
+          {
+            "nll_delta": 0.003572605550289154,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004426495870575309,
+            "logit_mse": 0.0071115391328930855
+          },
+          {
+            "nll_delta": 0.0033080577850341797,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012725245906040072,
+            "logit_mse": 0.005071415565907955
+          },
+          {
+            "nll_delta": -0.05654025077819824,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001672163634793833,
+            "logit_mse": 0.009124894626438618
+          },
+          {
+            "nll_delta": 0.010058283805847168,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003795295488089323,
+            "logit_mse": 0.0090121328830719
+          },
+          {
+            "nll_delta": 2.26483098231256e-06,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.1983832943515154e-07,
+            "logit_mse": 0.009915061295032501
+          },
+          {
+            "nll_delta": -0.0002330518327653408,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.5327859475510195e-05,
+            "logit_mse": 0.01085912249982357
+          },
+          {
+            "nll_delta": -0.00394902378320694,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001231054775416851,
+            "logit_mse": 0.005688033066689968
+          },
+          {
+            "nll_delta": 0.03534543514251709,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002486978890374303,
+            "logit_mse": 0.009332830086350441
+          },
+          {
+            "nll_delta": 0.001551722176373005,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00019659113604575396,
+            "logit_mse": 0.01052698865532875
+          },
+          {
+            "nll_delta": -0.0014280909672379494,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015533949772361666,
+            "logit_mse": 0.015233242884278297
+          },
+          {
+            "nll_delta": -1.3905344530940056e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.6147596145165153e-05,
+            "logit_mse": 0.01452945452183485
+          },
+          {
+            "nll_delta": 0.0012598829343914986,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011366885883035138,
+            "logit_mse": 0.01955459639430046
+          },
+          {
+            "nll_delta": 0.06789970397949219,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003019409778062254,
+            "logit_mse": 0.004424199927598238
+          },
+          {
+            "nll_delta": -0.011609077453613281,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00046861814917065203,
+            "logit_mse": 0.00511337723582983
+          },
+          {
+            "nll_delta": 0.007495582103729248,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008428416331298649,
+            "logit_mse": 0.0044067115522921085
+          },
+          {
+            "nll_delta": -0.0011341571807861328,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006828475161455572,
+            "logit_mse": 0.00454807560890913
+          },
+          {
+            "nll_delta": -0.0353999137878418,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016864958452060819,
+            "logit_mse": 0.004952262155711651
+          },
+          {
+            "nll_delta": 0.005662679672241211,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00040692047332413495,
+            "logit_mse": 0.0033225181978195906
+          },
+          {
+            "nll_delta": 0.001829473301768303,
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.7492390119005e-05,
+            "logit_mse": 0.0031735284719616175
+          },
+          {
+            "nll_delta": 0.08056044578552246,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006188541301526129,
+            "logit_mse": 0.006628066301345825
+          },
+          {
+            "nll_delta": 0.0064029693603515625,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009180040215142071,
+            "logit_mse": 0.00994266476482153
+          },
+          {
+            "nll_delta": 0.03183621168136597,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0028668069280683994,
+            "logit_mse": 0.006729965563863516
+          },
+          {
+            "nll_delta": 0.07319378852844238,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0037333439104259014,
+            "logit_mse": 0.005602146498858929
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_04_start_139247",
+        "window_start": 139247,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 139247,
+          "context_token_end_exclusive": 141295,
+          "target_token_start": 141295,
+          "target_token_end_exclusive": 141327
+        },
+        "nll_delta": 0.008501194941345602,
+        "reference_nll": 2.258379109596717,
+        "candidate_nll": 2.2668803045380628,
+        "top1_match": 0.96875,
+        "kl_mean": 0.0014465206793090601,
+        "logit_mse_mean": 0.039168451147787664,
+        "per_token_divergence": [
+          {
+            "nll_delta": -0.0007759928703308105,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.0988966096192598e-05,
+            "logit_mse": 9.472684723732527e-06
+          },
+          {
+            "nll_delta": -0.00915476679801941,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004084901884198189,
+            "logit_mse": 0.004473820328712463
+          },
+          {
+            "nll_delta": 0.009355545043945312,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009425652679055929,
+            "logit_mse": 0.0026655872352421284
+          },
+          {
+            "nll_delta": -0.005324363708496094,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012734844349324703,
+            "logit_mse": 0.004087341949343681
+          },
+          {
+            "nll_delta": 0.006342113018035889,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0029811712447553873,
+            "logit_mse": 0.008483408950269222
+          },
+          {
+            "nll_delta": -0.016916751861572266,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014467447763308883,
+            "logit_mse": 0.015737321227788925
+          },
+          {
+            "nll_delta": -0.06417632102966309,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004347987473011017,
+            "logit_mse": 0.004160337615758181
+          },
+          {
+            "nll_delta": -0.0419161319732666,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010825673816725612,
+            "logit_mse": 0.003444124013185501
+          },
+          {
+            "nll_delta": -0.00012945232447236776,
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.5423913585837e-06,
+            "logit_mse": 0.005274374503642321
+          },
+          {
+            "nll_delta": -0.0006940305465832353,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006317914230749011,
+            "logit_mse": 1.050081491470337
+          },
+          {
+            "nll_delta": 0.015245139598846436,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009662741795182228,
+            "logit_mse": 0.006028812378644943
+          },
+          {
+            "nll_delta": -0.056557655334472656,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021784305572509766,
+            "logit_mse": 0.004866159055382013
+          },
+          {
+            "nll_delta": 0.0489501953125,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008018435328267515,
+            "logit_mse": 0.0034632368478924036
+          },
+          {
+            "nll_delta": -0.006585150957107544,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00040790362982079387,
+            "logit_mse": 0.0075142523273825645
+          },
+          {
+            "nll_delta": -0.01974344253540039,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003699914086610079,
+            "logit_mse": 0.005437954794615507
+          },
+          {
+            "nll_delta": 0.010897994041442871,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0023946885485202074,
+            "logit_mse": 0.00821211189031601
+          },
+          {
+            "nll_delta": 0.0753946304321289,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002815790008753538,
+            "logit_mse": 0.012222501449286938
+          },
+          {
+            "nll_delta": 0.19372272491455078,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0028935177251696587,
+            "logit_mse": 0.006648225709795952
+          },
+          {
+            "nll_delta": 0.0005177240818738937,
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.177163620828651e-05,
+            "logit_mse": 0.0033238185569643974
+          },
+          {
+            "nll_delta": 0.02308446168899536,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001511901500634849,
+            "logit_mse": 0.01237979531288147
+          },
+          {
+            "nll_delta": 0.004958987236022949,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012354979990050197,
+            "logit_mse": 0.004791916813701391
+          },
+          {
+            "nll_delta": 0.0007510818541049957,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.723707777680829e-05,
+            "logit_mse": 0.004937401041388512
+          },
+          {
+            "nll_delta": -0.03933197259902954,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002558307256549597,
+            "logit_mse": 0.03346480056643486
+          },
+          {
+            "nll_delta": -0.06465005874633789,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000712360255420208,
+            "logit_mse": 0.0034333327785134315
+          },
+          {
+            "nll_delta": -0.025767087936401367,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0029888751450926065,
+            "logit_mse": 0.0059603420086205006
+          },
+          {
+            "nll_delta": 0.021933913230895996,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005798497004434466,
+            "logit_mse": 0.010186775587499142
+          },
+          {
+            "nll_delta": -0.024858951568603516,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012617374304682016,
+            "logit_mse": 0.00395346200093627
+          },
+          {
+            "nll_delta": 0.10500454902648926,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000956683827098459,
+            "logit_mse": 0.0036473728250712156
+          },
+          {
+            "nll_delta": 0.022853612899780273,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001633361796848476,
+            "logit_mse": 0.0036025801673531532
+          },
+          {
+            "nll_delta": 0.07475543022155762,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001225631800480187,
+            "logit_mse": 0.004415852017700672
+          },
+          {
+            "nll_delta": 0.03589892387390137,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012475065886974335,
+            "logit_mse": 0.003825543448328972
+          },
+          {
+            "nll_delta": -0.0010466575622558594,
+            "top1_match": false,
+            "kl_reference_to_candidate": 0.0009962439071387053,
+            "logit_mse": 0.0026569091714918613
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_05_start_167097",
+        "window_start": 167097,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 167097,
+          "context_token_end_exclusive": 169145,
+          "target_token_start": 169145,
+          "target_token_end_exclusive": 169177
+        },
+        "nll_delta": 0.010268890820952947,
+        "reference_nll": 2.3742744461978873,
+        "candidate_nll": 2.3845433370188402,
+        "top1_match": 1.0,
+        "kl_mean": 0.0010415035724804511,
+        "logit_mse_mean": 0.008037115662943961,
+        "per_token_divergence": [
+          {
+            "nll_delta": 0.00015631318092346191,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.0922034309478477e-06,
+            "logit_mse": 9.596498784958385e-06
+          },
+          {
+            "nll_delta": -0.004318356513977051,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005717353778891265,
+            "logit_mse": 0.0032820559572428465
+          },
+          {
+            "nll_delta": -0.012081906199455261,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015114689012989402,
+            "logit_mse": 0.0032805094961076975
+          },
+          {
+            "nll_delta": 0.054213643074035645,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003529986832290888,
+            "logit_mse": 0.003353665117174387
+          },
+          {
+            "nll_delta": -0.015911102294921875,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013441401533782482,
+            "logit_mse": 0.0027336326893419027
+          },
+          {
+            "nll_delta": 0.1572704315185547,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000525062729138881,
+            "logit_mse": 0.00513315387070179
+          },
+          {
+            "nll_delta": 0.01967930793762207,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00031051936093717813,
+            "logit_mse": 0.003887028433382511
+          },
+          {
+            "nll_delta": -0.0343625545501709,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011514980578795075,
+            "logit_mse": 0.0026801719795912504
+          },
+          {
+            "nll_delta": 0.03530609607696533,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007203376153483987,
+            "logit_mse": 0.0028901156038045883
+          },
+          {
+            "nll_delta": 0.04806065559387207,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010793316178023815,
+            "logit_mse": 0.004574017599225044
+          },
+          {
+            "nll_delta": 0.013828419148921967,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008344422094523907,
+            "logit_mse": 0.009070784784853458
+          },
+          {
+            "nll_delta": 0.001401874702423811,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004556689818855375,
+            "logit_mse": 0.06324199587106705
+          },
+          {
+            "nll_delta": -0.006244659423828125,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005950932390987873,
+            "logit_mse": 0.002498249290511012
+          },
+          {
+            "nll_delta": -0.039328813552856445,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001608345308341086,
+            "logit_mse": 0.002992415800690651
+          },
+          {
+            "nll_delta": 0.0055838823318481445,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00028242680127732456,
+            "logit_mse": 0.0027003649156540632
+          },
+          {
+            "nll_delta": 0.009644031524658203,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008161139558069408,
+            "logit_mse": 0.00322375213727355
+          },
+          {
+            "nll_delta": 0.09712934494018555,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00222941511310637,
+            "logit_mse": 0.00462516862899065
+          },
+          {
+            "nll_delta": 0.015010952949523926,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001467506866902113,
+            "logit_mse": 0.01701332814991474
+          },
+          {
+            "nll_delta": -0.00028972397558391094,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.083306364715099e-05,
+            "logit_mse": 0.014599566347897053
+          },
+          {
+            "nll_delta": 0.01659262180328369,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0017498418455943465,
+            "logit_mse": 0.010326244868338108
+          },
+          {
+            "nll_delta": -0.022591114044189453,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008528539910912514,
+            "logit_mse": 0.00317377969622612
+          },
+          {
+            "nll_delta": -0.003604710102081299,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00031338277040049434,
+            "logit_mse": 0.0026248199865221977
+          },
+          {
+            "nll_delta": 0.03433060646057129,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005746804527007043,
+            "logit_mse": 0.0023265548516064882
+          },
+          {
+            "nll_delta": -0.010576248168945312,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013639949029311538,
+            "logit_mse": 0.0030247909016907215
+          },
+          {
+            "nll_delta": -0.024487018585205078,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001923533738590777,
+            "logit_mse": 0.004299941007047892
+          },
+          {
+            "nll_delta": 0.04358053207397461,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002163895405828953,
+            "logit_mse": 0.0054756575264036655
+          },
+          {
+            "nll_delta": 0.0655968189239502,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005991663783788681,
+            "logit_mse": 0.0032277351710945368
+          },
+          {
+            "nll_delta": -0.07692956924438477,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001955039333552122,
+            "logit_mse": 0.006135938689112663
+          },
+          {
+            "nll_delta": 0.005916878581047058,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008854842744767666,
+            "logit_mse": 0.0056801061145961285
+          },
+          {
+            "nll_delta": 0.00031984521774575114,
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.629878043895587e-05,
+            "logit_mse": 0.051603563129901886
+          },
+          {
+            "nll_delta": -0.04410600662231445,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000903331849258393,
+            "logit_mse": 0.003694636980071664
+          },
+          {
+            "nll_delta": -0.00018596649169921875,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009105922072194517,
+            "logit_mse": 0.003804359119385481
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_06_start_194946",
+        "window_start": 194946,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 194946,
+          "context_token_end_exclusive": 196994,
+          "target_token_start": 196994,
+          "target_token_end_exclusive": 197026
+        },
+        "nll_delta": 0.008090922085102648,
+        "reference_nll": 1.6563468362437561,
+        "candidate_nll": 1.6644377583288588,
+        "top1_match": 1.0,
+        "kl_mean": 0.003259813935301281,
+        "logit_mse_mean": 0.022499358230788857,
+        "per_token_divergence": [
+          {
+            "nll_delta": -0.008539915084838867,
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.875626159948297e-05,
+            "logit_mse": 6.179768388392404e-05
+          },
+          {
+            "nll_delta": 0.0038461685180664062,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003542285645380616,
+            "logit_mse": 0.014134950004518032
+          },
+          {
+            "nll_delta": 0.19505321979522705,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.009017862379550934,
+            "logit_mse": 0.06484267115592957
+          },
+          {
+            "nll_delta": -0.004062004387378693,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000434174231486395,
+            "logit_mse": 0.011651304550468922
+          },
+          {
+            "nll_delta": 0.014814987778663635,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001654237974435091,
+            "logit_mse": 0.013658120296895504
+          },
+          {
+            "nll_delta": 0.02116665244102478,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001015384099446237,
+            "logit_mse": 0.04649064317345619
+          },
+          {
+            "nll_delta": 0.024416610598564148,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0030286272522062063,
+            "logit_mse": 0.021430764347314835
+          },
+          {
+            "nll_delta": 0.06528282165527344,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014987366739660501,
+            "logit_mse": 0.035716328769922256
+          },
+          {
+            "nll_delta": 0.01600050926208496,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0025903931818902493,
+            "logit_mse": 0.016067057847976685
+          },
+          {
+            "nll_delta": 0.014295578002929688,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.008355970494449139,
+            "logit_mse": 0.019859470427036285
+          },
+          {
+            "nll_delta": 0.0017258021980524063,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001398140739183873,
+            "logit_mse": 0.029828447848558426
+          },
+          {
+            "nll_delta": -0.2521810531616211,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.031256988644599915,
+            "logit_mse": 0.03637974336743355
+          },
+          {
+            "nll_delta": -0.05291321873664856,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0041855331510305405,
+            "logit_mse": 0.01623387821018696
+          },
+          {
+            "nll_delta": -0.04019564390182495,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0017010181909427047,
+            "logit_mse": 0.014137055724859238
+          },
+          {
+            "nll_delta": 0.013170957565307617,
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.925460987375118e-05,
+            "logit_mse": 0.017945602536201477
+          },
+          {
+            "nll_delta": -0.0019378662109375,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003426210896577686,
+            "logit_mse": 0.015932975336909294
+          },
+          {
+            "nll_delta": 0.004362225532531738,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005076498491689563,
+            "logit_mse": 0.02784426510334015
+          },
+          {
+            "nll_delta": 0.029859870672225952,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0027363679837435484,
+            "logit_mse": 0.013816148042678833
+          },
+          {
+            "nll_delta": 0.014520902186632156,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001947428216226399,
+            "logit_mse": 0.016029544174671173
+          },
+          {
+            "nll_delta": 0.01145857572555542,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018775758799165487,
+            "logit_mse": 0.01390138454735279
+          },
+          {
+            "nll_delta": 0.032629549503326416,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013855812139809132,
+            "logit_mse": 0.032269712537527084
+          },
+          {
+            "nll_delta": 0.011876106262207031,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005423243273980916,
+            "logit_mse": 0.006834202446043491
+          },
+          {
+            "nll_delta": -0.007981419563293457,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004553473263513297,
+            "logit_mse": 0.006714360322803259
+          },
+          {
+            "nll_delta": -0.01929497718811035,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00041612220229581,
+            "logit_mse": 0.008913210593163967
+          },
+          {
+            "nll_delta": 0.1412801742553711,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004274427425116301,
+            "logit_mse": 0.022319475188851357
+          },
+          {
+            "nll_delta": -0.050348907709121704,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004311576951295137,
+            "logit_mse": 0.012967447750270367
+          },
+          {
+            "nll_delta": 0.03857624530792236,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.007151449099183083,
+            "logit_mse": 0.0357154905796051
+          },
+          {
+            "nll_delta": 0.06311845779418945,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021909831557422876,
+            "logit_mse": 0.0373573824763298
+          },
+          {
+            "nll_delta": 0.005656607449054718,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00022769840143155307,
+            "logit_mse": 0.03219415992498398
+          },
+          {
+            "nll_delta": 0.006081625819206238,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003832546644844115,
+            "logit_mse": 0.01514892652630806
+          },
+          {
+            "nll_delta": 0.00506177544593811,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004260291170794517,
+            "logit_mse": 0.02771051600575447
+          },
+          {
+            "nll_delta": -0.03789091110229492,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.006648572161793709,
+            "logit_mse": 0.03587242588400841
+          }
+        ],
+        "target_tokens": 32
+      },
+      {
+        "sample_id": "wikitext_validation_window_07_start_222796",
+        "window_start": 222796,
+        "query": {
+          "kind": "identified_continuation_boundary",
+          "description": "predict the held-out validation continuation immediately after this long context window",
+          "context_token_start": 222796,
+          "context_token_end_exclusive": 224844,
+          "target_token_start": 224844,
+          "target_token_end_exclusive": 224876
+        },
+        "nll_delta": 0.012164189339273435,
+        "reference_nll": 1.7874114233670753,
+        "candidate_nll": 1.7995756127063487,
+        "top1_match": 1.0,
+        "kl_mean": 0.0017649933413999008,
+        "logit_mse_mean": 0.009721427942224636,
+        "per_token_divergence": [
+          {
+            "nll_delta": 0.0012129247188568115,
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.771243301453069e-06,
+            "logit_mse": 2.4824550564517267e-05
+          },
+          {
+            "nll_delta": 0.0030288100242614746,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013290250208228827,
+            "logit_mse": 0.01445538830012083
+          },
+          {
+            "nll_delta": 0.009528696537017822,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006495725247077644,
+            "logit_mse": 0.00578815583139658
+          },
+          {
+            "nll_delta": -0.05015993118286133,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014681488974019885,
+            "logit_mse": 0.005658221896737814
+          },
+          {
+            "nll_delta": 9.534560376778245e-07,
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.639260269977967e-07,
+            "logit_mse": 0.0087653249502182
+          },
+          {
+            "nll_delta": 0.1673583984375,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0019733088556677103,
+            "logit_mse": 0.004669801332056522
+          },
+          {
+            "nll_delta": -0.0027524828910827637,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000862063025124371,
+            "logit_mse": 0.0052126385271549225
+          },
+          {
+            "nll_delta": 0.017416715621948242,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013505439274013042,
+            "logit_mse": 0.009270292706787586
+          },
+          {
+            "nll_delta": -0.010400772094726562,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002830577315762639,
+            "logit_mse": 0.00657061580568552
+          },
+          {
+            "nll_delta": 0.011382818222045898,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0034594438038766384,
+            "logit_mse": 0.010674533434212208
+          },
+          {
+            "nll_delta": -0.05670976638793945,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001380612957291305,
+            "logit_mse": 0.009241309016942978
+          },
+          {
+            "nll_delta": -7.152302714530379e-06,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.8597577309265034e-06,
+            "logit_mse": 0.04836791753768921
+          },
+          {
+            "nll_delta": -0.0001904699020087719,
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.571947556542e-06,
+            "logit_mse": 0.010328681208193302
+          },
+          {
+            "nll_delta": 0.0012288093566894531,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0023431312292814255,
+            "logit_mse": 0.007935269735753536
+          },
+          {
+            "nll_delta": 0.0019447803497314453,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.005827134009450674,
+            "logit_mse": 0.011886674910783768
+          },
+          {
+            "nll_delta": 0.24301433563232422,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.005892784800380468,
+            "logit_mse": 0.009978470392525196
+          },
+          {
+            "nll_delta": 0.0347331166267395,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015422222204506397,
+            "logit_mse": 0.010618516243994236
+          },
+          {
+            "nll_delta": -0.004332184791564941,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012165691005066037,
+            "logit_mse": 0.007719160057604313
+          },
+          {
+            "nll_delta": 0.052472591400146484,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015284616965800524,
+            "logit_mse": 0.005359705071896315
+          },
+          {
+            "nll_delta": -0.09085512161254883,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003117387415841222,
+            "logit_mse": 0.006686560809612274
+          },
+          {
+            "nll_delta": 0.0001443028450012207,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010614768834784627,
+            "logit_mse": 0.009909983724355698
+          },
+          {
+            "nll_delta": -0.002797365188598633,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0017509806202724576,
+            "logit_mse": 0.007352860178798437
+          },
+          {
+            "nll_delta": -0.03158232569694519,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00419840682297945,
+            "logit_mse": 0.007601216435432434
+          },
+          {
+            "nll_delta": 1.4899873349349946e-05,
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.9178328329871874e-06,
+            "logit_mse": 0.029714656993746758
+          },
+          {
+            "nll_delta": -0.060073018074035645,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0019803012255579233,
+            "logit_mse": 0.003944771364331245
+          },
+          {
+            "nll_delta": 0.01519736647605896,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001746172085404396,
+            "logit_mse": 0.004439685493707657
+          },
+          {
+            "nll_delta": -0.0726327896118164,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001758667640388012,
+            "logit_mse": 0.004839669913053513
+          },
+          {
+            "nll_delta": -0.010714054107666016,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013180164387449622,
+            "logit_mse": 0.006222637370228767
+          },
+          {
+            "nll_delta": -0.015128374099731445,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013415694702416658,
+            "logit_mse": 0.011649549938738346
+          },
+          {
+            "nll_delta": -0.004062563180923462,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001184400636702776,
+            "logit_mse": 0.005502680782228708
+          },
+          {
+            "nll_delta": -0.03119271993637085,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005002511315979064,
+            "logit_mse": 0.005711608100682497
+          },
+          {
+            "nll_delta": 0.27416563034057617,
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0028504724614322186,
+            "logit_mse": 0.014984311535954475
+          }
+        ],
+        "target_tokens": 32
+      }
+    ],
+    "nll_delta_bootstrap95": {
+      "mean": 0.0030423639583290196,
+      "ci95_low": -0.0029093276722051086,
+      "ci95_high": 0.0081124999221032,
+      "count": 8,
+      "bootstrap_iterations": 2000
+    },
+    "top1_match_mean": 0.9921875,
+    "kl_mean": 0.0016127387615821887,
+    "logit_mse_mean": 0.014326818418997078
+  },
+  "free_running_generation": {
+    "per_sample": [
+      {
+        "sample_id": "hellaswag_validation_000294",
+        "label": 0,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          12531,
+          374,
+          1101,
+          264,
+          1695,
+          892,
+          311,
+          6136,
+          16763,
+          1606,
+          279,
+          17614,
+          374,
+          2103,
+          8369,
+          3403,
+          311,
+          1212,
+          17684,
+          33196,
+          11,
+          719,
+          433,
+          596,
+          539,
+          779,
+          4106,
+          430,
+          279,
+          19595,
+          690,
+          9235,
+          704,
+          13,
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          2351,
+          48114,
+          304,
+          279,
+          7474,
+          11,
+          1304,
+          2771,
+          311,
+          3090,
+          279,
+          3158,
+          15870,
+          311,
+          2567,
+          279,
+          17614,
+          21147,
+          13,
+          510,
+          9710,
+          60
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          2351,
+          48114,
+          304,
+          279,
+          10683,
+          11,
+          3868,
+          3156,
+          279,
+          17614,
+          706,
+          82830,
+          709,
+          13,
+          1472,
+          649,
+          1296,
+          279,
+          17614,
+          9499,
+          555,
+          38072,
+          701,
+          14654,
+          304,
+          279,
+          5015,
+          13,
+          1442,
+          433,
+          596,
+          2103,
+          9439,
+          11,
+          3868,
+          264,
+          2478,
+          810,
+          5672,
+          13,
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          2351,
+          48114,
+          304,
+          279,
+          4498,
+          11,
+          1304,
+          2771,
+          279,
+          5015,
+          374,
+          539,
+          2288,
+          14739
+        ],
+        "prefix_token_agreement": 0.078125,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.866223313612863e-06,
+            "logit_mse": 9.155412953987252e-06
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003214713651686907,
+            "logit_mse": 0.008136640302836895
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014990975614637136,
+            "logit_mse": 0.007701039779931307
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 0.0036131558008491993,
+            "logit_mse": 0.006165971513837576
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.786014556884766,
+            "logit_mse": 3.167318105697632
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.905477523803711,
+            "logit_mse": 4.46064567565918
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.458297729492188,
+            "logit_mse": 4.88606071472168
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.796382904052734,
+            "logit_mse": 5.257627487182617
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.555103302001953,
+            "logit_mse": 3.8306710720062256
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.63383960723877,
+            "logit_mse": 4.050549507141113
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.464502334594727,
+            "logit_mse": 3.4479916095733643
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.211297035217285,
+            "logit_mse": 3.5957114696502686
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.68234920501709,
+            "logit_mse": 4.548675060272217
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.121750831604004,
+            "logit_mse": 1.6204148530960083
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.6769169569015503,
+            "logit_mse": 1.1062175035476685
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 0.631404459476471,
+            "logit_mse": 0.997685432434082
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 4.889423847198486,
+            "logit_mse": 2.628904104232788
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.615242004394531,
+            "logit_mse": 3.718416452407837
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 2.241699695587158,
+            "logit_mse": 3.050489902496338
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.673771858215332,
+            "logit_mse": 4.980372428894043
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.635905265808105,
+            "logit_mse": 6.260427951812744
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.942814826965332,
+            "logit_mse": 6.755700588226318
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.73561954498291,
+            "logit_mse": 6.8400139808654785
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.247053146362305,
+            "logit_mse": 4.765370845794678
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.158880233764648,
+            "logit_mse": 5.165242671966553
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 6.238039016723633,
+            "logit_mse": 4.0876383781433105
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.681438446044922,
+            "logit_mse": 6.910173416137695
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.05929946899414,
+            "logit_mse": 5.175318241119385
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.676712036132812,
+            "logit_mse": 5.486569881439209
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.312012672424316,
+            "logit_mse": 6.092901229858398
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 6.5899882316589355,
+            "logit_mse": 6.086485385894775
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.502388000488281,
+            "logit_mse": 5.2521138191223145
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.071925163269043,
+            "logit_mse": 8.147629737854004
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.121419906616211,
+            "logit_mse": 5.566689968109131
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.66325855255127,
+            "logit_mse": 4.7514967918396
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.560068130493164,
+            "logit_mse": 4.634910583496094
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.287025451660156,
+            "logit_mse": 9.305339813232422
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.418582916259766,
+            "logit_mse": 7.751049518585205
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 20.68818473815918,
+            "logit_mse": 11.146431922912598
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.396482467651367,
+            "logit_mse": 7.24501371383667
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.951677322387695,
+            "logit_mse": 5.876323699951172
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.61563491821289,
+            "logit_mse": 6.063218593597412
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.413392066955566,
+            "logit_mse": 5.107292652130127
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 14.757887840270996,
+            "logit_mse": 7.331380367279053
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.933100700378418,
+            "logit_mse": 5.203570365905762
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.617669105529785,
+            "logit_mse": 6.149603843688965
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 22.417613983154297,
+            "logit_mse": 12.455391883850098
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 17.280254364013672,
+            "logit_mse": 6.492856979370117
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.786456108093262,
+            "logit_mse": 4.4599480628967285
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.307639122009277,
+            "logit_mse": 5.477296352386475
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 17.95652961730957,
+            "logit_mse": 5.046000957489014
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.79256534576416,
+            "logit_mse": 5.008794784545898
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 7.807644367218018,
+            "logit_mse": 4.151223182678223
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.52800464630127,
+            "logit_mse": 4.419414043426514
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.679548263549805,
+            "logit_mse": 6.758388519287109
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 2.6948957443237305,
+            "logit_mse": 4.138941764831543
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.296247482299805,
+            "logit_mse": 4.341200351715088
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.808019638061523,
+            "logit_mse": 3.381202459335327
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.267961502075195,
+            "logit_mse": 5.358159065246582
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.493563652038574,
+            "logit_mse": 4.913737773895264
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 14.346177101135254,
+            "logit_mse": 4.824770927429199
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.092156410217285,
+            "logit_mse": 8.707085609436035
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 21.82246208190918,
+            "logit_mse": 14.743833541870117
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 19.22411346435547,
+            "logit_mse": 13.461992263793945
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Spring is also a good time to plant grass because the soil is still warm enough to start germination, but it's not so hot that the seeds will dry out. [step] If you're planting in the summer, make sure to water the area regularly to keep the soil moist. [step]",
+        "reference_text": " [step] If you're planting in the spring, wait until the soil has warmed up. You can test the soil temperature by sticking your finger in the ground. If it's still cold, wait a few more weeks. [step] If you're planting in the fall, make sure the ground is not too wet",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_001591",
+        "label": 3,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279,
+          7147,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          6134,
+          4124,
+          505,
+          279
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.9149898182367906e-05,
+            "logit_mse": 2.823301292664837e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00297520961612463,
+            "logit_mse": 0.013923472724854946
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003384599112905562,
+            "logit_mse": 0.005537612829357386
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001383406575769186,
+            "logit_mse": 0.0020051661413162947
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003782041312661022,
+            "logit_mse": 0.005621916148811579
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00216372637078166,
+            "logit_mse": 0.006007826421409845
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003995655104517937,
+            "logit_mse": 0.01111606415361166
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016978277126327157,
+            "logit_mse": 0.010068291798233986
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006847424083389342,
+            "logit_mse": 0.005913758184760809
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0031260536052286625,
+            "logit_mse": 0.011805357411503792
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012377197854220867,
+            "logit_mse": 0.004799488466233015
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004847970325499773,
+            "logit_mse": 0.002633081516250968
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0029598672408610582,
+            "logit_mse": 0.015512469224631786
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004632957570720464,
+            "logit_mse": 0.007754862774163485
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012673140736296773,
+            "logit_mse": 0.0025353184901177883
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00027021963614970446,
+            "logit_mse": 0.0028001824393868446
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015803378773853183,
+            "logit_mse": 0.0031012503895908594
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016743758460506797,
+            "logit_mse": 0.004823605064302683
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008558364352211356,
+            "logit_mse": 0.004010308533906937
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002206438803113997,
+            "logit_mse": 0.008255497552454472
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016310288337990642,
+            "logit_mse": 0.010188315995037556
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006722478428855538,
+            "logit_mse": 0.0043695480562746525
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00259565026499331,
+            "logit_mse": 0.0053480868227779865
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001292720320634544,
+            "logit_mse": 0.010428952053189278
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008718424360267818,
+            "logit_mse": 0.04286469519138336
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021351135801523924,
+            "logit_mse": 0.0032335654832422733
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00026338291354477406,
+            "logit_mse": 0.0063021243549883366
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011982261203229427,
+            "logit_mse": 0.004080323036760092
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005694007850252092,
+            "logit_mse": 0.005613462533801794
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00016741441504564136,
+            "logit_mse": 0.0071113221347332
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.4375845239555929e-05,
+            "logit_mse": 0.00463270815089345
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.9082691980875097e-05,
+            "logit_mse": 0.021615371108055115
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00028066328377462924,
+            "logit_mse": 0.006256007589399815
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004172695335000753,
+            "logit_mse": 0.03908856213092804
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012598419561982155,
+            "logit_mse": 0.013651659712195396
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.072506948839873e-05,
+            "logit_mse": 0.021221473813056946
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006475297268480062,
+            "logit_mse": 0.0030080967117100954
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.280235877260566e-05,
+            "logit_mse": 0.004722973797470331
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00016032817075029016,
+            "logit_mse": 0.011917635798454285
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00017845802358351648,
+            "logit_mse": 0.008613169193267822
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011496122897369787,
+            "logit_mse": 0.03088400885462761
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.072930879483465e-06,
+            "logit_mse": 0.006567943841218948
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.562549631576985e-05,
+            "logit_mse": 0.059164904057979584
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00012002242146991193,
+            "logit_mse": 0.006483057048171759
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002001073444262147,
+            "logit_mse": 0.022350970655679703
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004967707791365683,
+            "logit_mse": 0.010368566028773785
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00012031069491058588,
+            "logit_mse": 0.02147134765982628
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008040519896894693,
+            "logit_mse": 0.0038071575108915567
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.2210501154186204e-05,
+            "logit_mse": 0.005057462025433779
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011729031393770128,
+            "logit_mse": 0.03734115883708
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.3841223082854412e-05,
+            "logit_mse": 0.025427354499697685
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.783560093026608e-05,
+            "logit_mse": 0.022471627220511436
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.117547622532584e-06,
+            "logit_mse": 0.004381431732326746
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015403343131765723,
+            "logit_mse": 1.078754186630249
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00010298260167473927,
+            "logit_mse": 0.013677657581865788
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013876736629754305,
+            "logit_mse": 0.030777987092733383
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007429694524034858,
+            "logit_mse": 0.014407522045075893
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.182805085089058e-05,
+            "logit_mse": 0.013940801844000816
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004870081029366702,
+            "logit_mse": 0.006025863345712423
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.247945616953075e-05,
+            "logit_mse": 0.0074073015712201595
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.540801405208185e-05,
+            "logit_mse": 0.014440921135246754
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00030178396264091134,
+            "logit_mse": 0.8648120164871216
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.076280336244963e-05,
+            "logit_mse": 0.011565880849957466
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.68872247741092e-05,
+            "logit_mse": 0.007644334342330694
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the",
+        "reference_text": " [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the wall. [step] Remove the door frame from the",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_002678",
+        "label": 2,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          22748,
+          279,
+          15606,
+          2042,
+          589,
+          449,
+          3090,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          11004,
+          264,
+          19596,
+          38899,
+          304,
+          279,
+          4219,
+          315,
+          279,
+          15606,
+          2042,
+          589,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          11004,
+          264,
+          19596,
+          38899,
+          304,
+          279,
+          4219,
+          315,
+          279,
+          15606,
+          2042,
+          589,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          22748,
+          279,
+          15606,
+          2042,
+          589,
+          449,
+          3090,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          11004,
+          264,
+          19596,
+          38899,
+          304,
+          279,
+          4219,
+          315,
+          279,
+          15606,
+          2042,
+          589,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          11004,
+          264,
+          19596,
+          38899,
+          304,
+          279,
+          4219,
+          315,
+          279,
+          15606,
+          2042,
+          589,
+          13,
+          510,
+          2008,
+          25047,
+          60,
+          15353
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.028917025309056e-06,
+            "logit_mse": 1.0286095857736655e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015552109107375145,
+            "logit_mse": 0.005107899662107229
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00022878449817653745,
+            "logit_mse": 0.004166346043348312
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009177222964353859,
+            "logit_mse": 0.0036000616382807493
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006376180681400001,
+            "logit_mse": 0.003506012726575136
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000897458172403276,
+            "logit_mse": 0.0032457367051392794
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.4943888092821e-06,
+            "logit_mse": 0.006120727397501469
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.0598423361661844e-05,
+            "logit_mse": 0.015611851587891579
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000836418941617012,
+            "logit_mse": 0.005309085827320814
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012305777054280043,
+            "logit_mse": 0.0036930732894688845
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007716300897300243,
+            "logit_mse": 0.018266361206769943
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005428637959994376,
+            "logit_mse": 0.004297892563045025
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008422091486863792,
+            "logit_mse": 0.004908624105155468
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.591048754169606e-06,
+            "logit_mse": 0.005735262297093868
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.92373606498586e-05,
+            "logit_mse": 0.013877658173441887
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0025001189205795527,
+            "logit_mse": 0.0043432991951704025
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003654331376310438,
+            "logit_mse": 0.02710689976811409
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.265452586580068e-05,
+            "logit_mse": 0.005386935081332922
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015989493113011122,
+            "logit_mse": 0.00462897215038538
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000570008298382163,
+            "logit_mse": 0.008313693106174469
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004357575671747327,
+            "logit_mse": 0.008581027388572693
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.5341516447952017e-05,
+            "logit_mse": 0.00909779965877533
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006472088862210512,
+            "logit_mse": 0.001866440288722515
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000723905221093446,
+            "logit_mse": 0.0026385656092315912
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016934515442699194,
+            "logit_mse": 0.003256730269640684
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011634889524430037,
+            "logit_mse": 0.0035965635906904936
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005520016420632601,
+            "logit_mse": 0.00352902221493423
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.119113044813275e-05,
+            "logit_mse": 0.003920414950698614
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000771308143157512,
+            "logit_mse": 0.005441693589091301
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00038574993959628046,
+            "logit_mse": 0.004501704592257738
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00016194331692531705,
+            "logit_mse": 0.0037625604309141636
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00084450573194772,
+            "logit_mse": 0.005434717517346144
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.932595508464146e-06,
+            "logit_mse": 0.0390348881483078
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004245781747158617,
+            "logit_mse": 0.5990380644798279
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007569389417767525,
+            "logit_mse": 0.007034596521407366
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005623835604637861,
+            "logit_mse": 0.0035997042432427406
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001366187061648816,
+            "logit_mse": 0.008512207306921482
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.8862511650659144e-05,
+            "logit_mse": 0.021531395614147186
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.286815106344875e-05,
+            "logit_mse": 0.005154300015419722
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.006431859917938709,
+            "logit_mse": 0.03322610631585121
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.542755646572914e-05,
+            "logit_mse": 0.009618150070309639
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.133056740509346e-05,
+            "logit_mse": 0.19843131303787231
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.196218090626644e-05,
+            "logit_mse": 0.006654875352978706
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00027755144401453435,
+            "logit_mse": 0.008270377293229103
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016678589163348079,
+            "logit_mse": 0.018094033002853394
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.17220503045246e-05,
+            "logit_mse": 0.011848976835608482
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0017150798812508583,
+            "logit_mse": 0.003112795762717724
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021094626281410456,
+            "logit_mse": 0.006018828600645065
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004592845682054758,
+            "logit_mse": 0.005490550771355629
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.008561458438634872,
+            "logit_mse": 0.0060590775683522224
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.006170598790049553,
+            "logit_mse": 0.007888455875217915
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002090894617140293,
+            "logit_mse": 0.009145761840045452
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003586503735277802,
+            "logit_mse": 0.02353614568710327
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.97852805792354e-05,
+            "logit_mse": 0.009494571946561337
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00012336738291196525,
+            "logit_mse": 0.0069517893716692924
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010286761680617929,
+            "logit_mse": 0.009382537566125393
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.303833975427551e-06,
+            "logit_mse": 0.10138052701950073
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.516845016652951e-06,
+            "logit_mse": 0.03522949293255806
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023559403780382127,
+            "logit_mse": 0.005535733886063099
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009919790318235755,
+            "logit_mse": 0.0056243655271828175
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00017518062668386847,
+            "logit_mse": 0.010499256663024426
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.99660085956566e-05,
+            "logit_mse": 0.03466474264860153
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00010641624248819426,
+            "logit_mse": 0.008724434301257133
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00040335216908715665,
+            "logit_mse": 0.00868152640759945
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Fill the birdbath with water. [substeps] Continue the passage: [step] Place a floating candle in the center of the birdbath. [substeps] Continue the passage: [step] Place a floating candle in the center of the birdbath. [substeps] Continue",
+        "reference_text": " [step] Fill the birdbath with water. [substeps] Continue the passage: [step] Place a floating candle in the center of the birdbath. [substeps] Continue the passage: [step] Place a floating candle in the center of the birdbath. [substeps] Continue",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_003795",
+        "label": 3,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          3861,
+          315,
+          279,
+          1455,
+          3062,
+          2574,
+          499,
+          649,
+          4048,
+          520,
+          279,
+          1212,
+          315,
+          279,
+          2978,
+          1060,
+          374,
+          1405,
+          701,
+          12239,
+          4131,
+          505,
+          13,
+          1115,
+          3445,
+          10371,
+          1148,
+          32272,
+          636,
+          264,
+          12239,
+          11,
+          323,
+          1268,
+          1790,
+          1855,
+          832,
+          374,
+          5922,
+          13,
+          510,
+          9710,
+          60,
+          3861,
+          315,
+          279,
+          1455,
+          3062,
+          2574,
+          499,
+          649,
+          4048,
+          520,
+          279,
+          1212,
+          315,
+          279,
+          2978,
+          1060,
+          374,
+          1405
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          3861,
+          315,
+          279,
+          1455,
+          3062,
+          2574,
+          499,
+          649,
+          4048,
+          520,
+          279,
+          1212,
+          315,
+          279,
+          2978,
+          1060,
+          374,
+          1405,
+          701,
+          12239,
+          4131,
+          505,
+          13,
+          1115,
+          3445,
+          10371,
+          1148,
+          32272,
+          636,
+          264,
+          12239,
+          11,
+          323,
+          1268,
+          1790,
+          1855,
+          832,
+          374,
+          5922,
+          13,
+          510,
+          9710,
+          60,
+          3861,
+          315,
+          279,
+          1455,
+          3062,
+          2574,
+          499,
+          649,
+          4048,
+          520,
+          279,
+          1212,
+          315,
+          279,
+          2978,
+          1060,
+          374,
+          1405
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.335625711362809e-05,
+            "logit_mse": 1.2675096513703465e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0022511305287480354,
+            "logit_mse": 0.006100883241742849
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018813412170857191,
+            "logit_mse": 0.00737706758081913
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002875514328479767,
+            "logit_mse": 0.006437991745769978
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000105242696008645,
+            "logit_mse": 0.005481639876961708
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.99567506974563e-05,
+            "logit_mse": 0.011914758943021297
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.710551365860738e-05,
+            "logit_mse": 0.006200320553034544
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001307965285377577,
+            "logit_mse": 0.005226796958595514
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.9943948650034145e-05,
+            "logit_mse": 0.003567401086911559
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.883186946040951e-05,
+            "logit_mse": 0.005413457285612822
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.699585431604646e-05,
+            "logit_mse": 0.005432874895632267
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.710817539598793e-05,
+            "logit_mse": 0.007166238967329264
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.758063758141361e-05,
+            "logit_mse": 0.004114269744604826
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.9491744751576334e-05,
+            "logit_mse": 0.006518189329653978
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007117573404684663,
+            "logit_mse": 0.027650337666273117
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.1224306187359616e-05,
+            "logit_mse": 0.052846722304821014
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.6283472834620625e-05,
+            "logit_mse": 0.004656054545193911
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.973789353040047e-05,
+            "logit_mse": 0.009836369194090366
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.907294245029334e-05,
+            "logit_mse": 0.009429249912500381
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.4743773135705851e-05,
+            "logit_mse": 0.0037550011184066534
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015335292846430093,
+            "logit_mse": 0.004364511463791132
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.777368591632694e-05,
+            "logit_mse": 0.003528773318976164
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.581911293324083e-05,
+            "logit_mse": 0.014124974608421326
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00032413433655165136,
+            "logit_mse": 0.018195176497101784
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.349229003419168e-06,
+            "logit_mse": 0.005852799862623215
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.546401785570197e-05,
+            "logit_mse": 0.0037710864562541246
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.363002027384937e-05,
+            "logit_mse": 0.006026444025337696
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00010303775343345478,
+            "logit_mse": 0.007729831151664257
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.722563840507064e-05,
+            "logit_mse": 0.005429042968899012
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00020357155881356448,
+            "logit_mse": 0.006335816811770201
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011238102160859853,
+            "logit_mse": 0.011172909289598465
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.607817289885134e-05,
+            "logit_mse": 0.009264949709177017
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.93190787488129e-05,
+            "logit_mse": 0.007794809527695179
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003944539465010166,
+            "logit_mse": 0.27062323689460754
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00012689962750300765,
+            "logit_mse": 0.007883402518928051
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023176471586339176,
+            "logit_mse": 0.06745115667581558
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.676392124267295e-05,
+            "logit_mse": 0.007364270277321339
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.519407204701565e-05,
+            "logit_mse": 0.054291944950819016
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.5006505640922114e-05,
+            "logit_mse": 0.008224308490753174
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.3006101148203015e-05,
+            "logit_mse": 0.00703342305496335
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00016170246817637235,
+            "logit_mse": 0.1025124341249466
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023212733503896743,
+            "logit_mse": 0.09442265331745148
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023419408535119146,
+            "logit_mse": 0.00582532212138176
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021704253740608692,
+            "logit_mse": 0.008754052221775055
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0024383869022130966,
+            "logit_mse": 0.01426178589463234
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00041869396227411926,
+            "logit_mse": 0.019102392718195915
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.010111518204212189,
+            "logit_mse": 0.017023369669914246
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00024308574211318046,
+            "logit_mse": 0.012130525894463062
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.08650690689683e-06,
+            "logit_mse": 0.009404228068888187
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00018623443611431867,
+            "logit_mse": 0.020351555198431015
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.241619793290738e-05,
+            "logit_mse": 0.008579139597713947
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.752562851237599e-06,
+            "logit_mse": 0.0046674953773617744
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.966728814295493e-05,
+            "logit_mse": 0.007481281645596027
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.5367397029185668e-05,
+            "logit_mse": 0.06751076877117157
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007586952415294945,
+            "logit_mse": 0.12601013481616974
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.5267412638640963e-05,
+            "logit_mse": 0.005601809825748205
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.026532097777817e-06,
+            "logit_mse": 0.006280186120420694
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.4707580198301e-05,
+            "logit_mse": 0.019558511674404144
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.818531018216163e-05,
+            "logit_mse": 0.1052841916680336
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.3941925974213518e-05,
+            "logit_mse": 0.005896625574678183
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003472463577054441,
+            "logit_mse": 0.5140805244445801
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013223285786807537,
+            "logit_mse": 3.142113208770752
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.7576907339389436e-05,
+            "logit_mse": 0.012732897885143757
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.1209273806307465e-05,
+            "logit_mse": 0.007315511349588633
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] One of the most important things you can learn at the start of the school year is where your grade comes from. This means asking what assignments get a grade, and how much each one is worth. [step] One of the most important things you can learn at the start of the school year is where",
+        "reference_text": " [step] One of the most important things you can learn at the start of the school year is where your grade comes from. This means asking what assignments get a grade, and how much each one is worth. [step] One of the most important things you can learn at the start of the school year is where",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_006281",
+        "label": 2,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          20245,
+          13412,
+          311,
+          279,
+          5789,
+          430,
+          499,
+          1390,
+          311,
+          3504,
+          13,
+          510,
+          9710,
+          60,
+          5560,
+          264,
+          20245,
+          13412,
+          15998,
+          311,
+          20955,
+          279,
+          20245,
+          13412,
+          1139,
+          701,
+          6930,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          264,
+          3177,
+          16174,
+          287,
+          315,
+          17138,
+          311,
+          743,
+          279,
+          20245,
+          13412,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          16665,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          70326,
+          13,
+          510
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          20245,
+          13412,
+          311,
+          279,
+          5789,
+          430,
+          1205,
+          433,
+          13,
+          510,
+          9710,
+          60,
+          5560,
+          264,
+          20245,
+          13412,
+          15998,
+          311,
+          20955,
+          279,
+          20245,
+          13412,
+          1139,
+          701,
+          6930,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          16665,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          17138,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          70326,
+          13,
+          510,
+          9710,
+          60,
+          21194,
+          701,
+          31071,
+          7215,
+          13,
+          510,
+          9710,
+          60,
+          21194
+        ],
+        "prefix_token_agreement": 0.171875,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.383265594602562e-06,
+            "logit_mse": 1.1591398106247652e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002935579977929592,
+            "logit_mse": 0.00809334684163332
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008634823025204241,
+            "logit_mse": 0.007687515113502741
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002294739242643118,
+            "logit_mse": 0.0032998714596033096
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0026218476705253124,
+            "logit_mse": 0.0032793672289699316
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0068739415146410465,
+            "logit_mse": 0.0036787923891097307
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.3434174585854635e-05,
+            "logit_mse": 0.005658385343849659
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010633458150550723,
+            "logit_mse": 0.003094298066571355
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009389504557475448,
+            "logit_mse": 0.0041284444741904736
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009412801591679454,
+            "logit_mse": 0.002732793800532818
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004982533282600343,
+            "logit_mse": 0.007017530035227537
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 0.00033332439488731325,
+            "logit_mse": 0.0033772713504731655
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.791757583618164,
+            "logit_mse": 3.9814751148223877
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 5.468735694885254,
+            "logit_mse": 2.5891809463500977
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.142455101013184,
+            "logit_mse": 6.844527721405029
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.443973541259766,
+            "logit_mse": 9.409280776977539
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.455942153930664,
+            "logit_mse": 7.581048965454102
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 14.190705299377441,
+            "logit_mse": 10.065073013305664
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.50460147857666,
+            "logit_mse": 8.35964584350586
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.419788360595703,
+            "logit_mse": 6.83435583114624
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.46970272064209,
+            "logit_mse": 8.910033226013184
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 2.3420939445495605,
+            "logit_mse": 3.011997938156128
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 17.418210983276367,
+            "logit_mse": 8.20489501953125
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.7612886428833,
+            "logit_mse": 3.9008142948150635
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 7.354048252105713,
+            "logit_mse": 2.5514814853668213
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.828898429870605,
+            "logit_mse": 3.6876111030578613
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.780841827392578,
+            "logit_mse": 7.521949291229248
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.33568286895752,
+            "logit_mse": 2.9388785362243652
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 22.20490837097168,
+            "logit_mse": 8.430436134338379
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.118444442749023,
+            "logit_mse": 3.7757058143615723
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.570199012756348,
+            "logit_mse": 3.4906632900238037
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.13150691986084,
+            "logit_mse": 8.051593780517578
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.48198127746582,
+            "logit_mse": 10.276209831237793
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.61562442779541,
+            "logit_mse": 6.6532392501831055
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 14.295584678649902,
+            "logit_mse": 9.994742393493652
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.450552940368652,
+            "logit_mse": 8.519028663635254
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.921436309814453,
+            "logit_mse": 6.121682167053223
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 6.028584957122803,
+            "logit_mse": 3.2172231674194336
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.039329528808594,
+            "logit_mse": 7.4417853355407715
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 17.06332015991211,
+            "logit_mse": 13.622105598449707
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 18.962928771972656,
+            "logit_mse": 7.468895435333252
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 11.816798210144043,
+            "logit_mse": 4.903839588165283
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 2.0369389057159424,
+            "logit_mse": 1.2393912076950073
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 6.826322555541992,
+            "logit_mse": 3.5929226875305176
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.815861701965332,
+            "logit_mse": 3.828806161880493
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 7.694188117980957,
+            "logit_mse": 5.141963481903076
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 21.7154541015625,
+            "logit_mse": 12.501803398132324
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 22.401870727539062,
+            "logit_mse": 11.90118408203125
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.810439109802246,
+            "logit_mse": 5.258108615875244
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.217317581176758,
+            "logit_mse": 4.790905475616455
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 15.644872665405273,
+            "logit_mse": 13.418450355529785
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.995598793029785,
+            "logit_mse": 5.953803062438965
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 4.2223005294799805,
+            "logit_mse": 2.6060965061187744
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 21.003446578979492,
+            "logit_mse": 11.844565391540527
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 16.445676803588867,
+            "logit_mse": 10.051315307617188
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 9.124618530273438,
+            "logit_mse": 5.87774658203125
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 10.637838363647461,
+            "logit_mse": 5.089076995849609
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 16.106096267700195,
+            "logit_mse": 12.420686721801758
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 17.030195236206055,
+            "logit_mse": 10.370063781738281
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 12.719592094421387,
+            "logit_mse": 4.492761135101318
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 8.966425895690918,
+            "logit_mse": 6.309699058532715
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 21.822223663330078,
+            "logit_mse": 13.092596054077148
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 13.057402610778809,
+            "logit_mse": 5.925962448120117
+          },
+          {
+            "top1_match": false,
+            "kl_reference_to_candidate": 4.952086925506592,
+            "logit_mse": 3.650944709777832
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Apply your concealer to the areas that you want to cover. [step] Use a concealer brush to blend the concealer into your skin. [step] Apply a light dusting of powder to set the concealer. [step] Apply your foundation. [step] Apply your blush. [",
+        "reference_text": " [step] Apply your concealer to the areas that need it. [step] Use a concealer brush to blend the concealer into your skin. [step] Apply your foundation. [step] Apply your powder. [step] Apply your blush. [step] Apply your bronzer. [step] Apply",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_008522",
+        "label": 3,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          8941,
+          287,
+          701,
+          24569,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          4857,
+          709,
+          701,
+          17685,
+          17915,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          18899,
+          701,
+          8335,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          18899,
+          701,
+          48378,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          8941,
+          287,
+          701,
+          24569,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          4857,
+          709,
+          701,
+          17685,
+          17915,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          18899,
+          701,
+          8335,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369,
+          18899,
+          701,
+          48378,
+          13,
+          510,
+          9710,
+          60,
+          8704,
+          14661,
+          527,
+          1101,
+          1695,
+          369
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.1006708518834785e-05,
+            "logit_mse": 1.6206216969294474e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.007803295273333788,
+            "logit_mse": 0.011611126363277435
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007992892060428858,
+            "logit_mse": 0.011676899157464504
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0026203172747045755,
+            "logit_mse": 0.0031981710344552994
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 6.186310929479077e-05,
+            "logit_mse": 0.004085909109562635
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003032606327906251,
+            "logit_mse": 0.002619973151013255
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006734720664098859,
+            "logit_mse": 0.0033806294668465853
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016983780078589916,
+            "logit_mse": 0.004790484439581633
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003139962791465223,
+            "logit_mse": 0.003100363304838538
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001200722181238234,
+            "logit_mse": 0.0022711576893925667
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.9492368867067853e-06,
+            "logit_mse": 0.0022440338507294655
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00040704908315092325,
+            "logit_mse": 0.0021636176388710737
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002906965964939445,
+            "logit_mse": 0.0016953079029917717
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00014279622700996697,
+            "logit_mse": 0.005641133990138769
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015245949616655707,
+            "logit_mse": 0.003299325006082654
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001064640935510397,
+            "logit_mse": 0.00961867906153202
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.682700379518792e-05,
+            "logit_mse": 0.0127799604088068
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011423099786043167,
+            "logit_mse": 0.005327694583684206
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.004862759960815e-05,
+            "logit_mse": 0.005222092382609844
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00013901821512263268,
+            "logit_mse": 0.002462145406752825
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002963043807540089,
+            "logit_mse": 0.004095338750630617
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015772979240864515,
+            "logit_mse": 0.003885583719238639
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005535767413675785,
+            "logit_mse": 0.006476991809904575
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010491583961993456,
+            "logit_mse": 0.002790902741253376
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001174073200672865,
+            "logit_mse": 0.007451359182596207
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018628569087013602,
+            "logit_mse": 0.004408962093293667
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012320990208536386,
+            "logit_mse": 0.002855097409337759
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006492133834399283,
+            "logit_mse": 0.002279512817040086
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002705833176150918,
+            "logit_mse": 0.0031713296193629503
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015383573481813073,
+            "logit_mse": 0.0031752062495797873
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001446874812245369,
+            "logit_mse": 0.007944831624627113
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021111348178237677,
+            "logit_mse": 2.3299829959869385
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.011059624142944813,
+            "logit_mse": 0.019436215981841087
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001738008577376604,
+            "logit_mse": 0.2911725640296936
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00035037973430007696,
+            "logit_mse": 0.007023720070719719
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005384375108405948,
+            "logit_mse": 0.004935134202241898
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00022504263324663043,
+            "logit_mse": 0.011718586087226868
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004253154620528221,
+            "logit_mse": 0.03053264133632183
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001095250016078353,
+            "logit_mse": 0.0027318326756358147
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00024091967497952282,
+            "logit_mse": 0.003200652776286006
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00035752428811974823,
+            "logit_mse": 0.0029855321627110243
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008317177416756749,
+            "logit_mse": 0.008509313687682152
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018169532995671034,
+            "logit_mse": 0.019171493127942085
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0062639606185257435,
+            "logit_mse": 0.03359634801745415
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000762615236453712,
+            "logit_mse": 0.09723538905382156
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014456261415034533,
+            "logit_mse": 0.009301582351326942
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003025237820111215,
+            "logit_mse": 0.07957641035318375
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001606425503268838,
+            "logit_mse": 0.011621697805821896
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005078866961412132,
+            "logit_mse": 0.005905364640057087
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 3.638041016529314e-05,
+            "logit_mse": 0.010239681228995323
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008345746900886297,
+            "logit_mse": 0.034688279032707214
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007956440094858408,
+            "logit_mse": 0.0025177516508847475
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015769056335557252,
+            "logit_mse": 0.002994687296450138
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010372466640546918,
+            "logit_mse": 0.003149572294205427
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002774674503598362,
+            "logit_mse": 0.006081275641918182
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002238435670733452,
+            "logit_mse": 0.023830706253647804
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002872501965612173,
+            "logit_mse": 0.021285470575094223
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002957410179078579,
+            "logit_mse": 0.20253874361515045
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003827940672636032,
+            "logit_mse": 0.007855501025915146
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.188798680435866e-05,
+            "logit_mse": 0.014376131817698479
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001496114127803594,
+            "logit_mse": 0.011034812778234482
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005047595477662981,
+            "logit_mse": 0.007879178039729595
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.006327799288556e-05,
+            "logit_mse": 0.018185004591941833
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007452936260960996,
+            "logit_mse": 0.09980227053165436
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Hand weights are also good for toning your muscles. [step] Hand weights are also good for building up your bone density. [step] Hand weights are also good for improving your balance. [step] Hand weights are also good for improving your posture. [step] Hand weights are also good for",
+        "reference_text": " [step] Hand weights are also good for toning your muscles. [step] Hand weights are also good for building up your bone density. [step] Hand weights are also good for improving your balance. [step] Hand weights are also good for improving your posture. [step] Hand weights are also good for",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_011050",
+        "label": 1,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          12268,
+          1022,
+          279,
+          3090,
+          8312,
+          311,
+          279,
+          19868,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          9785,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          1050,
+          12527,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          12268,
+          389,
+          279,
+          3090,
+          8312,
+          13,
+          510,
+          9710,
+          60,
+          4343,
+          279,
+          3090,
+          6530,
+          13,
+          510,
+          9710,
+          60,
+          1442,
+          279,
+          3090,
+          6530,
+          374,
+          2103,
+          7621
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          12268,
+          1022,
+          279,
+          3090,
+          8312,
+          311,
+          279,
+          19868,
+          13,
+          510,
+          9710,
+          60,
+          11016,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          9785,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          1050,
+          12527,
+          279,
+          34548,
+          859,
+          13,
+          510,
+          9710,
+          60,
+          12268,
+          389,
+          279,
+          3090,
+          8312,
+          13,
+          510,
+          9710,
+          60,
+          4343,
+          279,
+          3090,
+          6530,
+          13,
+          510,
+          9710,
+          60,
+          1442,
+          279,
+          3090,
+          6530,
+          374,
+          2103,
+          7621
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 5.0807002480723895e-06,
+            "logit_mse": 7.483803528884891e-06
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007487551774829626,
+            "logit_mse": 0.004354384727776051
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015685698599554598,
+            "logit_mse": 0.006139461882412434
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014777479227632284,
+            "logit_mse": 0.0023941388353705406
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001200885628350079,
+            "logit_mse": 0.005919663235545158
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.379639621125534e-05,
+            "logit_mse": 0.004129537846893072
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006151139969006181,
+            "logit_mse": 0.004872125107795
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0019988890271633863,
+            "logit_mse": 0.003572843736037612
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011554525699466467,
+            "logit_mse": 0.004109812900424004
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011382942466298118,
+            "logit_mse": 0.004495092201977968
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014845854602754116,
+            "logit_mse": 0.004475763998925686
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001095928018912673,
+            "logit_mse": 0.009408291429281235
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00415425468236208,
+            "logit_mse": 0.0070772934705019
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005224063061177731,
+            "logit_mse": 0.0067069316282868385
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015604648797307163,
+            "logit_mse": 0.011730113998055458
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014246858190745115,
+            "logit_mse": 0.004033682402223349
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.60911823110655e-05,
+            "logit_mse": 0.008840348571538925
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012746609281748533,
+            "logit_mse": 0.00847564171999693
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 1.1364423698978499e-05,
+            "logit_mse": 0.006229857914149761
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013158329529687762,
+            "logit_mse": 0.005685441195964813
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014166295295581222,
+            "logit_mse": 0.002757659647613764
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006101468461565673,
+            "logit_mse": 0.008478564210236073
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.676020034821704e-05,
+            "logit_mse": 0.023207655176520348
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002780117793008685,
+            "logit_mse": 0.0036291927099227905
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010144698899239302,
+            "logit_mse": 0.0043366579338908195
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010225423611700535,
+            "logit_mse": 0.00441910233348608
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.007642125245184e-05,
+            "logit_mse": 0.013754299841821194
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006181221106089652,
+            "logit_mse": 0.0034544812515378
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001315732253715396,
+            "logit_mse": 0.003274832619354129
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002794379252009094,
+            "logit_mse": 0.005391845479607582
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008287325035780668,
+            "logit_mse": 0.74630206823349
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000573624565731734,
+            "logit_mse": 0.002983629237860441
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002711767447181046,
+            "logit_mse": 0.003632989013567567
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00020842395315412432,
+            "logit_mse": 0.0025464585050940514
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003170630370732397,
+            "logit_mse": 0.003001580946147442
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.110213457257487e-06,
+            "logit_mse": 0.008765427395701408
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002692773996386677,
+            "logit_mse": 0.0025459355674684048
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012148988898843527,
+            "logit_mse": 0.005193754099309444
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013445807853713632,
+            "logit_mse": 0.008872238919138908
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00026176922256127,
+            "logit_mse": 0.07546885311603546
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0018478716956451535,
+            "logit_mse": 0.004916205536574125
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004689749039243907,
+            "logit_mse": 0.006749540567398071
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.349262498086318e-05,
+            "logit_mse": 0.0099108275026083
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00029130655457265675,
+            "logit_mse": 0.007365760859102011
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008210212690755725,
+            "logit_mse": 0.0048736268654465675
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016584128607064486,
+            "logit_mse": 0.00644318014383316
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0017524571157991886,
+            "logit_mse": 0.004619276616722345
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0011340975761413574,
+            "logit_mse": 0.006688270717859268
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0003860101569443941,
+            "logit_mse": 0.05617498233914375
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001643885625526309,
+            "logit_mse": 0.005410993006080389
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009857384720817208,
+            "logit_mse": 0.00669958908110857
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001701928093098104,
+            "logit_mse": 0.004280837252736092
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006566233350895345,
+            "logit_mse": 0.00449008122086525
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005452941986732185,
+            "logit_mse": 0.0033644530922174454
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00178178446367383,
+            "logit_mse": 0.009782928973436356
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00699153495952487,
+            "logit_mse": 0.013218218460679054
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.92158147203736e-05,
+            "logit_mse": 0.01055196113884449
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0012682824162766337,
+            "logit_mse": 0.004484137520194054
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007688036421313882,
+            "logit_mse": 0.0042030829936265945
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008520047995261848,
+            "logit_mse": 0.004485961981117725
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009829450864344835,
+            "logit_mse": 0.0024657153990119696
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004564581613522023,
+            "logit_mse": 0.0035904536489397287
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0010322575690224767,
+            "logit_mse": 0.002228155732154846
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00032372860005125403,
+            "logit_mse": 0.003378322347998619
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] Turn off the water supply to the sink. [step] Remove the aerator. [step] Clean the aerator. [step] Reinstall the aerator. [step] Turn on the water supply. [step] Check the water flow. [step] If the water flow is still weak",
+        "reference_text": " [step] Turn off the water supply to the sink. [step] Remove the aerator. [step] Clean the aerator. [step] Reinstall the aerator. [step] Turn on the water supply. [step] Check the water flow. [step] If the water flow is still weak",
+        "generated_tokens": 64
+      },
+      {
+        "sample_id": "hellaswag_validation_012182",
+        "label": 3,
+        "candidate_tokens": [
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          617,
+          1317,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264,
+          7013,
+          18623,
+          311,
+          6958,
+          701,
+          7013,
+          1203,
+          1139,
+          264,
+          53736,
+          14928,
+          13,
+          1442,
+          499,
+          617,
+          2875,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264,
+          7013,
+          18623,
+          311,
+          6958,
+          701,
+          7013,
+          1203,
+          1139,
+          264,
+          53736,
+          14928,
+          13,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          617,
+          1317,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264
+        ],
+        "reference_tokens": [
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          617,
+          1317,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264,
+          7013,
+          18623,
+          311,
+          6958,
+          701,
+          7013,
+          1203,
+          1139,
+          264,
+          53736,
+          14928,
+          13,
+          1442,
+          499,
+          617,
+          2875,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264,
+          7013,
+          18623,
+          311,
+          6958,
+          701,
+          7013,
+          1203,
+          1139,
+          264,
+          53736,
+          14928,
+          13,
+          15353,
+          279,
+          21765,
+          25,
+          510,
+          9710,
+          60,
+          1442,
+          499,
+          617,
+          1317,
+          7013,
+          11,
+          499,
+          649,
+          1005,
+          264
+        ],
+        "prefix_token_agreement": 1.0,
+        "per_step_divergence": [
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.312432793085463e-06,
+            "logit_mse": 1.1052486115659121e-05
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.007908850908279419,
+            "logit_mse": 0.013101594522595406
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004384074360132217,
+            "logit_mse": 0.009843043982982635
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021177392918616533,
+            "logit_mse": 0.0045980713330209255
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.937523282133043e-05,
+            "logit_mse": 0.004684546031057835
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00047895507304929197,
+            "logit_mse": 0.003148643532767892
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007775619742460549,
+            "logit_mse": 0.002623756881803274
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006203906959854066,
+            "logit_mse": 0.005147264804691076
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0002896763617172837,
+            "logit_mse": 0.0036905843298882246
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0009482289897277951,
+            "logit_mse": 0.0022644989658147097
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00016930169658735394,
+            "logit_mse": 0.0025404447223991156
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013050863053649664,
+            "logit_mse": 0.002155870199203491
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016848482191562653,
+            "logit_mse": 0.005602584686130285
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002027745358645916,
+            "logit_mse": 0.0039776586927473545
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.004722243174910545,
+            "logit_mse": 0.003949849400669336
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00033678035833872855,
+            "logit_mse": 0.004872160963714123
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0005869914893992245,
+            "logit_mse": 0.00234432565048337
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007438638713210821,
+            "logit_mse": 0.0029914272017776966
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00014406020636670291,
+            "logit_mse": 0.005815410055220127
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0019320722203701735,
+            "logit_mse": 0.004102291073650122
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0025102209765464067,
+            "logit_mse": 0.0053775194101035595
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000138309522299096,
+            "logit_mse": 0.0039784861728549
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001115824212320149,
+            "logit_mse": 0.003282307181507349
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0001544744154671207,
+            "logit_mse": 0.0038914356846362352
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0013459812616929412,
+            "logit_mse": 0.0075724865309894085
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0030384825076907873,
+            "logit_mse": 0.003294585505500436
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00023370659619104117,
+            "logit_mse": 0.0030451323837041855
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0006034680409356952,
+            "logit_mse": 0.004492858424782753
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000372591515770182,
+            "logit_mse": 0.0022754031233489513
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00011387682752683759,
+            "logit_mse": 0.004526752047240734
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.949300925247371e-05,
+            "logit_mse": 0.003124470356851816
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007225011941045523,
+            "logit_mse": 0.0025038179010152817
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016161437379196286,
+            "logit_mse": 0.004099472891539335
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0014029492158442736,
+            "logit_mse": 0.0026712999679148197
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007868641405366361,
+            "logit_mse": 0.003793829120695591
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.002671540714800358,
+            "logit_mse": 0.004534827079623938
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.003778482088819146,
+            "logit_mse": 0.005239150486886501
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007652376079931855,
+            "logit_mse": 0.0034343244042247534
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007732833619229496,
+            "logit_mse": 0.002752118045464158
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00033874859218485653,
+            "logit_mse": 0.0035860699135810137
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00014670274686068296,
+            "logit_mse": 0.007617063354700804
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00037808515480719507,
+            "logit_mse": 0.003150956705212593
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0021017498802393675,
+            "logit_mse": 0.009186428040266037
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 2.4693732484593056e-05,
+            "logit_mse": 0.003066197969019413
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000366629014024511,
+            "logit_mse": 0.004491589963436127
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00034687574952840805,
+            "logit_mse": 0.01749819703400135
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0007049013511277735,
+            "logit_mse": 0.007120909169316292
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0015499546425417066,
+            "logit_mse": 0.006073370575904846
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00013240939006209373,
+            "logit_mse": 0.00805798452347517
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.000364803709089756,
+            "logit_mse": 0.02883090265095234
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.945428999140859e-05,
+            "logit_mse": 0.00808023102581501
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015984353376552463,
+            "logit_mse": 0.006293990649282932
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0008835501503199339,
+            "logit_mse": 0.0142755676060915
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.913331112125888e-05,
+            "logit_mse": 0.019141729921102524
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0016177366487681866,
+            "logit_mse": 0.003486582776531577
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.0004464388475753367,
+            "logit_mse": 0.003490581177175045
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.888084605336189e-05,
+            "logit_mse": 0.0024451648350805044
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.001124248607084155,
+            "logit_mse": 0.004684895742684603
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 9.75497459876351e-05,
+            "logit_mse": 0.0039912923239171505
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 4.9775091611081734e-05,
+            "logit_mse": 0.003939906135201454
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00015821172564756125,
+            "logit_mse": 0.0037001934833824635
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 8.072060882113874e-05,
+            "logit_mse": 0.025082087144255638
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 0.00019398910808376968,
+            "logit_mse": 0.005959579721093178
+          },
+          {
+            "top1_match": true,
+            "kl_reference_to_candidate": 7.107321289367974e-05,
+            "logit_mse": 0.0051207225769758224
+          }
+        ],
+        "candidate_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "reference_termination": {
+          "terminated_by_eos": false,
+          "termination_step": null,
+          "termination_reason": "max_tokens",
+          "nonfinite_logits": false,
+          "repetition_pathology": false,
+          "safety_failure": false,
+          "termination_failure": false,
+          "requested_max_tokens": 64
+        },
+        "candidate_text": " [step] If you have long hair, you can use a hair tie to pull your hair back into a ponytail. If you have short hair, you can use a hair tie to pull your hair back into a ponytail. Continue the passage: [step] If you have long hair, you can use a",
+        "reference_text": " [step] If you have long hair, you can use a hair tie to pull your hair back into a ponytail. If you have short hair, you can use a hair tie to pull your hair back into a ponytail. Continue the passage: [step] If you have long hair, you can use a",
+        "generated_tokens": 64
+      }
+    ],
+    "prefix_token_agreement_mean": 0.78125,
+    "per_step_divergence_recorded": true,
+    "termination_records": true,
+    "pathology_records": true,
+    "sample_count": 8
+  },
+  "quality_timing_separate": true,
+  "scope": "held-out task probes; no capacity or latency value is taken from this run",
+  "environment": {
+    "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+    "torch": "2.4.0+cu121",
+    "cuda_runtime": "12.1",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "capability": [
+      8,
+      6
+    ],
+    "total_device_memory_bytes": 25296044032,
+    "declared_budget_fraction": 0.9,
+    "declared_budget_bytes": 22766439628,
+    "declared_budget_mib": 21711.76875,
+    "visible_devices": "4"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_quality_v2.py",
+      "--output",
+      "results/kv-capacity-v2/quality-final/llama31_8b_kivi4_quality_c2048.json",
+      "--method",
+      "kivi4",
+      "--model-family",
+      "llama31_8b",
+      "--device",
+      "cuda:0",
+      "--context-tokens",
+      "2048",
+      "--samples",
+      "8",
+      "--generation-tokens",
+      "64",
+      "--seed",
+      "20261025",
+      "--bits",
+      "4"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}
