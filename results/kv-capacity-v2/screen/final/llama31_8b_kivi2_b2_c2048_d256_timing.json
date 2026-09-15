@@ -1,0 +1,39 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "oom",
+  "method": "kivi2",
+  "model_family": "llama31_8b",
+  "context_tokens": 2048,
+  "decode_tokens": 256,
+  "batch_size": 2,
+  "instrumentation": "timing",
+  "error": {
+    "type": "OutOfMemoryError",
+    "message": "CUDA out of memory. Tried to allocate 112.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 5.69 MiB is free. Process 4059692 has 10.32 GiB memory in use. Including non-PyTorch memory, this process has 13.22 GiB memory in use. Of the allocated memory 12.87 GiB is allocated by PyTorch, and 63.54 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 343, in main\n    result = run(args)\n             ^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 306, in run\n    model, tokenizer, method_config = load_hf(args.method, path, device, bits, args.group_size, residual_length)\n                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 149, in load_hf\n    model = LlamaForCausalLM_KIVI.from_pretrained(path, config=config, torch_dtype=torch.float16, low_cpu_mem_usage=True, device_map={\"\": device.index or 0}, local_files_only=True).to(device).eval()\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py\", line 279, in _wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py\", line 4399, in from_pretrained\n    ) = cls._load_pretrained_model(\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py\", line 4833, in _load_pretrained_model\n    disk_offload_index, cpu_offload_index = _load_state_dict_into_meta_model(\n                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py\", line 789, in _load_state_dict_into_meta_model\n    param = param.to(casting_dtype)\n            ^^^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 112.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 5.69 MiB is free. Process 4059692 has 10.32 GiB memory in use. Including non-PyTorch memory, this process has 13.22 GiB memory in use. Of the allocated memory 12.87 GiB is allocated by PyTorch, and 63.54 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/screen/final/llama31_8b_kivi2_b2_c2048_d256_timing.json",
+      "--method",
+      "kivi2",
+      "--model-family",
+      "llama31_8b",
+      "--context-tokens",
+      "2048",
+      "--decode-tokens",
+      "256",
+      "--batch-size",
+      "2",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "0",
+      "--repeats",
+      "1"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

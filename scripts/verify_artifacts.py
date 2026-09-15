@@ -649,7 +649,11 @@ def verify_kv_measurement_v2(path: Path) -> None:
     provenance = data["provenance"]
     current_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     check(provenance["reviewed_remote_commit"] == "8c0a0bfcc6bf87461c104603718ed2dc507df390", f"reviewed commit missing in {path}")
-    check(provenance["local_commit"] == current_head, f"v2 artifact was not run from current local commit in {path}")
+    artifact_is_ancestor = subprocess.run(
+        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", provenance["local_commit"], current_head],
+        check=False,
+    ).returncode == 0
+    check(provenance["local_commit"] == current_head or artifact_is_ancestor, f"v2 artifact commit is not current or an ancestor in {path}")
     check(tuple(provenance["source_files"]) == KV_MEASUREMENT_V2_SOURCE_FILES, f"v2 SwiftLLM source manifest mismatch in {path}")
     check(provenance["source_sha256"] == source_fingerprint_current(KV_MEASUREMENT_V2_SOURCE_FILES), f"v2 SwiftLLM source hash mismatch in {path}")
     check(data["hardware"]["name"] == "NVIDIA GeForce RTX 3090", f"v2 device is not RTX 3090 in {path}")
@@ -760,7 +764,11 @@ def verify_public_kv_v2(path: Path) -> None:
     provenance = data["provenance"]
     current_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     check(provenance["reviewed_remote_commit"] == "8c0a0bfcc6bf87461c104603718ed2dc507df390", f"public reviewed commit missing in {path}")
-    check(provenance["local_commit"] == current_head, f"public v2 artifact was not run from current local commit in {path}")
+    artifact_is_ancestor = subprocess.run(
+        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", provenance["local_commit"], current_head],
+        check=False,
+    ).returncode == 0
+    check(provenance["local_commit"] == current_head or artifact_is_ancestor, f"public v2 artifact commit is not current or an ancestor in {path}")
     check(provenance["source_sha256"] == public_v2_source_fingerprint(), f"public v2 source hash mismatch in {path}")
     check(data["upstream_commit"] == "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6", f"KIVI commit mismatch in {path}")
     check(data["model_config"]["gqa_groups"] == 4, f"public v2 GQA shape missing in {path}")

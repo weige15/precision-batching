@@ -1,0 +1,39 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "oom",
+  "method": "hf_fp16",
+  "model_family": "llama32_1b",
+  "context_tokens": 2048,
+  "decode_tokens": 256,
+  "batch_size": 1,
+  "instrumentation": "timing",
+  "error": {
+    "type": "OutOfMemoryError",
+    "message": "CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 2.05 GiB is free. Including non-PyTorch memory, this process has 21.50 GiB memory in use. Of the allocated memory 17.95 GiB is allocated by PyTorch, and 3.24 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 333, in main\n    result = run(args)\n             ^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 298, in run\n    result = hf_run(model, tokenizer, args.context_tokens, args.decode_tokens, args.batch_size, device, args.warmups, args.repeats, args.instrumentation == \"memory\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 187, in hf_run\n    trajectory()\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 174, in trajectory\n    output = hf_call(model, token[:, None], past)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 156, in hf_call\n    return model(**kwargs)\n           ^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/utils/generic.py\", line 965, in wrapper\n    output = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/utils/deprecation.py\", line 172, in wrapped_func\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 821, in forward\n    outputs: BaseModelOutputWithPast = self.model(\n                                       ^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/utils/generic.py\", line 965, in wrapper\n    output = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 571, in forward\n    layer_outputs = decoder_layer(\n                    ^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 318, in forward\n    hidden_states, self_attn_weights = self.self_attn(\n                                       ^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 274, in forward\n    attn_output, attn_weights = attention_interface(\n                                ^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/integrations/sdpa_attention.py\", line 31, in sdpa_attention_forward\n    value = repeat_kv(value, module.num_key_value_groups)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/integrations/sdpa_attention.py\", line 15, in repeat_kv\n    return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 2.05 GiB is free. Including non-PyTorch memory, this process has 21.50 GiB memory in use. Of the allocated memory 17.95 GiB is allocated by PyTorch, and 3.24 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/screen/llama32_1b_hf_fp16_b1_c2048_d256_timing.json",
+      "--method",
+      "hf_fp16",
+      "--model-family",
+      "llama32_1b",
+      "--context-tokens",
+      "2048",
+      "--decode-tokens",
+      "256",
+      "--batch-size",
+      "1",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "1",
+      "--repeats",
+      "3"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

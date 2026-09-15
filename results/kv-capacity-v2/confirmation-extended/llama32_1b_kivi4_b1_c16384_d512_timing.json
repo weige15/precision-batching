@@ -1,0 +1,1617 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "completed",
+  "method": "kivi4",
+  "model_family": "llama32_1b",
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+  "model_files": [
+    {
+      "name": "config.json",
+      "bytes": 877,
+      "sha256": "2febf68cea25bf4611be02b7536f2488a5ba523bb1134986e3610152abe74fdb"
+    },
+    {
+      "name": "model.safetensors",
+      "bytes": 2471645608,
+      "sha256": null
+    }
+  ],
+  "context_tokens": 16384,
+  "decode_tokens": 512,
+  "batch_size": 1,
+  "instrumentation": "timing",
+  "budget": {
+    "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+    "torch": "2.4.0+cu121",
+    "cuda_runtime": "12.1",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "capability": [
+      8,
+      6
+    ],
+    "total_device_memory_bytes": 25296044032,
+    "declared_budget_fraction": 0.9,
+    "declared_budget_bytes": 22766439628,
+    "declared_budget_mib": 21711.76875,
+    "visible_devices": "2"
+  },
+  "provenance": {
+    "branch": "structured-precision-evidence",
+    "git_head": "0635054be6740d20ef0bab1a82601f438b2042ce",
+    "source_files": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "scripts/reproduce_kivi.py",
+      "vendor/swiftLLM/swiftllm/worker/model.py",
+      "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+      "vendor/public/KIVI/models/llama_kivi.py",
+      "vendor/public/KIVI/quant/new_pack.py",
+      "vendor/public/KIVI/quant/matmul.py"
+    ],
+    "source_sha256": "c33f227a18e9f75caf2dc5e07e7def57ca2766fb2f10165aab00fad9582fa0be",
+    "kivi_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+    "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d"
+  },
+  "method_config": {
+    "weights_dtype": "torch.float16",
+    "kv_backend": "KIVI native K4V4",
+    "k_bits": 4,
+    "v_bits": 4,
+    "group_size": 32,
+    "residual_length": 32,
+    "wrapper_logits_avoided": true,
+    "upstream_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6"
+  },
+  "model_loaded_allocator": {
+    "allocated_bytes": 2471636992,
+    "reserved_bytes": 3001024512,
+    "peak_allocated_bytes": 2996965376,
+    "peak_reserved_bytes": 3001024512
+  },
+  "run": {
+    "prompt_tokens": 16384,
+    "batch_size": 1,
+    "decode_tokens": 512,
+    "prompt_kind": "distinct-seed-repeated-token-mechanism-workload",
+    "target_inputs_prepared_before_timing": true,
+    "repetitions": [
+      {
+        "prefill_ms": 2767.030076996889,
+        "decode_ms": 14086.630125995725,
+        "trace": [],
+        "final": {
+          "phase": "decode_end",
+          "token_position": 16896,
+          "cache": {
+            "tensor_count": 112,
+            "logical_payload_bytes": 173375488,
+            "unique_live_storage_bytes": 173375488,
+            "tensors": [
+              {
+                "name": "cache[0][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15579987968:4325376"
+              },
+              {
+                "name": "cache[0][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41411007488:540672"
+              },
+              {
+                "name": "cache[0][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41413164032:540672"
+              },
+              {
+                "name": "cache[0][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15584313344:4317184"
+              },
+              {
+                "name": "cache[0][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41434600448:32768"
+              },
+              {
+                "name": "cache[0][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41408862208:539648"
+              },
+              {
+                "name": "cache[0][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41432441856:539648"
+              },
+              {
+                "name": "cache[1][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15588630528:4325376"
+              },
+              {
+                "name": "cache[1][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41466627072:540672"
+              },
+              {
+                "name": "cache[1][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41468783616:540672"
+              },
+              {
+                "name": "cache[1][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15592955904:4317184"
+              },
+              {
+                "name": "cache[1][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41477035008:32768"
+              },
+              {
+                "name": "cache[1][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41447812096:539648"
+              },
+              {
+                "name": "cache[1][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41455816704:539648"
+              },
+              {
+                "name": "cache[2][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15597273088:4325376"
+              },
+              {
+                "name": "cache[2][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41470940160:540672"
+              },
+              {
+                "name": "cache[2][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41473096704:540672"
+              },
+              {
+                "name": "cache[2][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15411970048:4317184"
+              },
+              {
+                "name": "cache[2][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41409730560:32768"
+              },
+              {
+                "name": "cache[2][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41474713600:539648"
+              },
+              {
+                "name": "cache[2][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41484382720:539648"
+              },
+              {
+                "name": "cache[3][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15416287232:4325376"
+              },
+              {
+                "name": "cache[3][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41442955264:540672"
+              },
+              {
+                "name": "cache[3][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41430201344:540672"
+              },
+              {
+                "name": "cache[3][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15420612608:4317184"
+              },
+              {
+                "name": "cache[3][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41409798144:32768"
+              },
+              {
+                "name": "cache[3][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41430742016:539648"
+              },
+              {
+                "name": "cache[3][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41480077824:539648"
+              },
+              {
+                "name": "cache[4][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15424929792:4325376"
+              },
+              {
+                "name": "cache[4][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41480617472:540672"
+              },
+              {
+                "name": "cache[4][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41482230272:540672"
+              },
+              {
+                "name": "cache[4][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15429255168:4317184"
+              },
+              {
+                "name": "cache[4][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41434895360:32768"
+              },
+              {
+                "name": "cache[4][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41482770944:539648"
+              },
+              {
+                "name": "cache[4][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41426428928:539648"
+              },
+              {
+                "name": "cache[5][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15433572352:4325376"
+              },
+              {
+                "name": "cache[5][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41426968576:540672"
+              },
+              {
+                "name": "cache[5][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41427509248:540672"
+              },
+              {
+                "name": "cache[5][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15437897728:4317184"
+              },
+              {
+                "name": "cache[5][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41448416256:32768"
+              },
+              {
+                "name": "cache[5][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41440181248:539648"
+              },
+              {
+                "name": "cache[5][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41440720896:539648"
+              },
+              {
+                "name": "cache[6][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15442214912:4325376"
+              },
+              {
+                "name": "cache[6][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41441260544:540672"
+              },
+              {
+                "name": "cache[6][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41444574208:540672"
+              },
+              {
+                "name": "cache[6][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15446540288:4317184"
+              },
+              {
+                "name": "cache[6][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41435615232:32768"
+              },
+              {
+                "name": "cache[6][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41445114880:539648"
+              },
+              {
+                "name": "cache[6][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41445654528:539648"
+              },
+              {
+                "name": "cache[7][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15450857472:4325376"
+              },
+              {
+                "name": "cache[7][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41458514944:540672"
+              },
+              {
+                "name": "cache[7][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41459055616:540672"
+              },
+              {
+                "name": "cache[7][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15455182848:4317184"
+              },
+              {
+                "name": "cache[7][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41448572928:32768"
+              },
+              {
+                "name": "cache[7][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41459596288:539648"
+              },
+              {
+                "name": "cache[7][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41460135936:539648"
+              },
+              {
+                "name": "cache[8][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15459500032:4325376"
+              },
+              {
+                "name": "cache[8][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41460675584:540672"
+              },
+              {
+                "name": "cache[8][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41461216256:540672"
+              },
+              {
+                "name": "cache[8][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15621816320:4317184"
+              },
+              {
+                "name": "cache[8][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41476872192:32768"
+              },
+              {
+                "name": "cache[8][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41461756928:539648"
+              },
+              {
+                "name": "cache[8][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41462296576:539648"
+              },
+              {
+                "name": "cache[9][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15626133504:4325376"
+              },
+              {
+                "name": "cache[9][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41462836224:540672"
+              },
+              {
+                "name": "cache[9][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41463376896:540672"
+              },
+              {
+                "name": "cache[9][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15630458880:4317184"
+              },
+              {
+                "name": "cache[9][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41409864704:32768"
+              },
+              {
+                "name": "cache[9][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41463917568:539648"
+              },
+              {
+                "name": "cache[9][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41464457216:539648"
+              },
+              {
+                "name": "cache[10][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15634776064:4325376"
+              },
+              {
+                "name": "cache[10][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41415320576:540672"
+              },
+              {
+                "name": "cache[10][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41415861248:540672"
+              },
+              {
+                "name": "cache[10][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15639101440:4317184"
+              },
+              {
+                "name": "cache[10][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41431281664:32768"
+              },
+              {
+                "name": "cache[10][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41416401920:539648"
+              },
+              {
+                "name": "cache[10][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41416941568:539648"
+              },
+              {
+                "name": "cache[11][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15643418624:4325376"
+              },
+              {
+                "name": "cache[11][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41417481216:540672"
+              },
+              {
+                "name": "cache[11][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41418021888:540672"
+              },
+              {
+                "name": "cache[11][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15647744000:4317184"
+              },
+              {
+                "name": "cache[11][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41431314432:32768"
+              },
+              {
+                "name": "cache[11][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41418562560:539648"
+              },
+              {
+                "name": "cache[11][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41419102208:539648"
+              },
+              {
+                "name": "cache[12][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15652061184:4325376"
+              },
+              {
+                "name": "cache[12][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41419641856:540672"
+              },
+              {
+                "name": "cache[12][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41420182528:540672"
+              },
+              {
+                "name": "cache[12][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15656386560:4317184"
+              },
+              {
+                "name": "cache[12][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41477241856:32768"
+              },
+              {
+                "name": "cache[12][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41420723200:539648"
+              },
+              {
+                "name": "cache[12][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41421262848:539648"
+              },
+              {
+                "name": "cache[13][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15660703744:4325376"
+              },
+              {
+                "name": "cache[13][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41421802496:540672"
+              },
+              {
+                "name": "cache[13][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41422343168:540672"
+              },
+              {
+                "name": "cache[13][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15665029120:4317184"
+              },
+              {
+                "name": "cache[13][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41476965376:32768"
+              },
+              {
+                "name": "cache[13][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41422883840:539648"
+              },
+              {
+                "name": "cache[13][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41423423488:539648"
+              },
+              {
+                "name": "cache[14][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15669346304:4325376"
+              },
+              {
+                "name": "cache[14][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41423963136:540672"
+              },
+              {
+                "name": "cache[14][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41424503808:540672"
+              },
+              {
+                "name": "cache[14][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15673671680:4317184"
+              },
+              {
+                "name": "cache[14][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41448731648:32768"
+              },
+              {
+                "name": "cache[14][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41425044480:539648"
+              },
+              {
+                "name": "cache[14][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41486539264:539648"
+              },
+              {
+                "name": "cache[15][0]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  2112
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4325376,
+                "storage_bytes": 4325376,
+                "storage_alias_id": "cuda:0:15677988864:4325376"
+              },
+              {
+                "name": "cache[15][2]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41487078912:540672"
+              },
+              {
+                "name": "cache[15][3]",
+                "shape": [
+                  1,
+                  8,
+                  64,
+                  528
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 540672,
+                "storage_bytes": 540672,
+                "storage_alias_id": "cuda:0:41487619584:540672"
+              },
+              {
+                "name": "cache[15][4]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  8
+                ],
+                "dtype": "torch.int32",
+                "logical_bytes": 4317184,
+                "storage_bytes": 4317184,
+                "storage_alias_id": "cuda:0:15758932480:4317184"
+              },
+              {
+                "name": "cache[15][5]",
+                "shape": [
+                  1,
+                  8,
+                  32,
+                  64
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 32768,
+                "storage_bytes": 32768,
+                "storage_alias_id": "cuda:0:41448764416:32768"
+              },
+              {
+                "name": "cache[15][6]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41488160256:539648"
+              },
+              {
+                "name": "cache[15][7]",
+                "shape": [
+                  1,
+                  8,
+                  16864,
+                  2
+                ],
+                "dtype": "torch.float16",
+                "logical_bytes": 539648,
+                "storage_bytes": 539648,
+                "storage_alias_id": "cuda:0:41488699904:539648"
+              }
+            ],
+            "model_owned_cache_tensors": [],
+            "model_owned_cache_logical_bytes": 0,
+            "model_owned_cache_unique_live_storage_bytes": 0
+          },
+          "allocator": {
+            "allocated_bytes": 2654438400,
+            "reserved_bytes": 3944742912,
+            "peak_allocated_bytes": 3722555392,
+            "peak_reserved_bytes": 3944742912
+          }
+        },
+        "base_model_runtime": {
+          "allocated_bytes": 2472030208,
+          "reserved_bytes": 2497708032,
+          "peak_allocated_bytes": 2472030208,
+          "peak_reserved_bytes": 2497708032
+        },
+        "peak": {
+          "allocated_bytes": 2480549888,
+          "reserved_bytes": 3944742912,
+          "peak_allocated_bytes": 3722555392,
+          "peak_reserved_bytes": 3944742912
+        },
+        "budget_check": {
+          "declared_budget_bytes": 22766439628,
+          "peak_allocated_bytes": 3722555392,
+          "peak_reserved_bytes": 3944742912,
+          "within_budget_allocated": true,
+          "within_budget_reserved": true,
+          "within_budget": true
+        }
+      }
+    ],
+    "memory_instrumented": false,
+    "timing_boundary": "synchronized wall-clock around complete prefill/decode model calls; no quality scoring or per-token host synchronization"
+  },
+  "completed_decode_steps": [
+    512
+  ],
+  "feasible": true,
+  "post_release_allocator": {
+    "allocated_bytes": 8519680,
+    "reserved_bytes": 20971520,
+    "peak_allocated_bytes": 3722555392,
+    "peak_reserved_bytes": 3944742912
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/confirmation-extended/llama32_1b_kivi4_b1_c16384_d512_timing.json",
+      "--method",
+      "kivi4",
+      "--model-family",
+      "llama32_1b",
+      "--context-tokens",
+      "16384",
+      "--decode-tokens",
+      "512",
+      "--batch-size",
+      "1",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "0",
+      "--repeats",
+      "1"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

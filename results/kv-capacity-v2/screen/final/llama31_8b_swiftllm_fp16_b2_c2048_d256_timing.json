@@ -1,0 +1,39 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "oom",
+  "method": "swiftllm_fp16",
+  "model_family": "llama31_8b",
+  "context_tokens": 2048,
+  "decode_tokens": 256,
+  "batch_size": 2,
+  "instrumentation": "timing",
+  "error": {
+    "type": "OutOfMemoryError",
+    "message": "CUDA out of memory. Tried to allocate 112.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 63.69 MiB is free. Process 4059692 has 10.32 GiB memory in use. Including non-PyTorch memory, this process has 13.16 GiB memory in use. Of the allocated memory 12.82 GiB is allocated by PyTorch, and 57.57 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 343, in main\n    result = run(args)\n             ^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 300, in run\n    model, tokenizer, method_config = load_swift(path, args.context_tokens, args.decode_tokens, args.batch_size, device, args.budget_fraction)\n                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 221, in load_swift\n    model.load_weights()\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/model.py\", line 71, in load_weights\n    self.weight = load_weights(\n                  ^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/weight.py\", line 271, in load_weights\n    weight.load_weights(getter)\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/weight.py\", line 51, in load_weights\n    self._post_process_after_load(getter)\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/weight.py\", line 186, in _post_process_after_load\n    layer.load_weights(getter)\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/weight.py\", line 45, in load_weights\n    weight_value = getter(item)\n                   ^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/weight.py\", line 241, in weight_getter_real\n    return tensor.to(item.dtype)\n           ^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 112.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 63.69 MiB is free. Process 4059692 has 10.32 GiB memory in use. Including non-PyTorch memory, this process has 13.16 GiB memory in use. Of the allocated memory 12.82 GiB is allocated by PyTorch, and 57.57 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/screen/final/llama31_8b_swiftllm_fp16_b2_c2048_d256_timing.json",
+      "--method",
+      "swiftllm_fp16",
+      "--model-family",
+      "llama31_8b",
+      "--context-tokens",
+      "2048",
+      "--decode-tokens",
+      "256",
+      "--batch-size",
+      "2",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "0",
+      "--repeats",
+      "1"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

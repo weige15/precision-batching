@@ -1,0 +1,39 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "error",
+  "method": "kivi_fp16",
+  "model_family": "llama32_1b",
+  "context_tokens": 2048,
+  "decode_tokens": 256,
+  "batch_size": 1,
+  "instrumentation": "timing",
+  "error": {
+    "type": "RuntimeError",
+    "message": "The size of tensor a (32) must match the size of tensor b (8) at non-singleton dimension 1",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 335, in main\n    result = run(args)\n             ^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 300, in run\n    result = hf_run(model, tokenizer, args.context_tokens, args.decode_tokens, args.batch_size, device, args.warmups, args.repeats, args.instrumentation == \"memory\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 197, in hf_run\n    row = trajectory(record_memory=memory_only, timed=not memory_only)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 175, in trajectory\n    output = hf_call(model, token[:, None], past)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 157, in hf_call\n    return model(**kwargs)\n           ^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/public/KIVI/models/llama_kivi.py\", line 862, in forward\n    outputs = self.model(\n              ^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/public/KIVI/models/llama_kivi.py\", line 751, in forward\n    layer_outputs = decoder_layer(\n                    ^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/public/KIVI/models/llama_kivi.py\", line 611, in forward\n    hidden_states, self_attn_weights, present_key_value = self.self_attn(\n                                                          ^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/public/KIVI/models/llama_kivi.py\", line 380, in forward\n    attn_output = torch.matmul(attn_weights, value_states_full)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: The size of tensor a (32) must match the size of tensor b (8) at non-singleton dimension 1\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/screen/llama32_1b_kivi_fp16_b1_c2048_d256_timing.json",
+      "--method",
+      "kivi_fp16",
+      "--model-family",
+      "llama32_1b",
+      "--context-tokens",
+      "2048",
+      "--decode-tokens",
+      "256",
+      "--batch-size",
+      "1",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "0",
+      "--repeats",
+      "1"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}
