@@ -7,6 +7,7 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - [Feasibility report](docs/feasibility-report.md) — findings, numbers, blocked questions, and go/no-go.
 - [Reproducible baseline](docs/baseline.md) — environment, model paths, setup, and exact commands.
 - [SwiftLLM execution map](docs/source-map.md) — request → scheduler → model → Q/K/V → KV-cache locations.
+- [SwiftLLM FP16 diagnosis](docs/fp16-diagnosis-report.md) — matched Transformers comparison, fixes, logits/decode evidence, and capacity follow-up.
 - [Claim/evidence matrix](docs/claim-evidence.md) — what is confirmed versus still uncertain.
 - [QAQ and MorphServe notes](docs/papers.md) — primary sources and scope boundaries.
 - [Available local assets](docs/available-assets.md) — model checkpoints and blocked AWQ asset.

@@ -186,6 +186,13 @@ class LlamaWeight(WeightBase):
             layer.load_weights(getter)
 
 
+def infer_model_version(config_data: dict) -> str:
+    """Select the loader's lm-head convention from checkpoint metadata."""
+    # Llama 3.1 and 3.2 both use a rope_scaling dictionary; tied embeddings
+    # distinguish the 3.2-style checkpoint used by this loader.
+    return "llama3.2" if config_data.get("tie_word_embeddings", False) else "llama"
+
+
 def load_weights(
     model_config: LlamaModelConfig,
     dtype: torch.dtype,
@@ -202,13 +209,7 @@ def load_weights(
             with open(config_path, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
                 
-            # In Llama 3.2, rope_scaling is a dictionary
-            # TODO 1: Add more robust detection logic
-            # TODO 2: Add more model versions
-            if "rope_scaling" in config_data and isinstance(config_data["rope_scaling"], dict):
-                model_version = "llama3.2"
-            else:
-                model_version = "llama"
+            model_version = infer_model_version(config_data)
         else:
             model_version = "llama"
 

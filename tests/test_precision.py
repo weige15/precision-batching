@@ -9,6 +9,7 @@ from swiftllm.server.structs import RawRequest, Request
 from swiftllm.engine_config import EngineConfig
 from swiftllm.model_config import LlamaModelConfig
 from swiftllm.worker.kernels.linear import linear
+from swiftllm.worker.weight import infer_model_version
 from swiftllm.server.api_server import _raw_request_from_dict
 
 
@@ -36,6 +37,10 @@ class PrecisionMetadataTests(unittest.TestCase):
         self.assertEqual(request.precision_profile.q_bits, 4)
         self.assertEqual(request.precision_profile.k_bits, 8)
         self.assertEqual(request.precision_profile.v_bits, 16)
+
+    def test_loader_distinguishes_llama31_from_llama32_by_tied_embeddings(self):
+        self.assertEqual(infer_model_version({"rope_scaling": {"rope_type": "llama3"}, "tie_word_embeddings": False}), "llama")
+        self.assertEqual(infer_model_version({"rope_scaling": {"rope_type": "llama3"}, "tie_word_embeddings": True}), "llama3.2")
 
     def test_fp16_linear_matches_legacy_operation(self):
         a = torch.arange(12, dtype=torch.float16).reshape(3, 4)
