@@ -27,3 +27,18 @@ their claim narrowed accordingly.
 | Native W4/W8 kernels should be implemented now | **No-go** | Final gate did not confirm a structured advantage | Reopen only after a future positive evidence phase |
 | Query routing or precision-aware batching should be implemented | **No-go / paused** | No multiple globally competitive profiles after 8B confirmation; scope flags false | Scheduler, KV quantization, swapping remain untouched |
 | Next direction should be KV-cache precision/serving behavior | Recommended | Final report and final gate next-direction field | Separate experiment required |
+
+## Live KV-page precision phase
+
+| Claim / uncertainty | Status | Evidence | Limitation / boundary |
+|---|---|---|---|
+| SwiftLLM page abstraction supports FP16/INT8/INT4 | Confirmed | `vendor/swiftLLM/swiftllm/worker/kv_cache.py`, `docs/kv-page-format.md`, `tests/test_kv_cache.py` | One-tensor-per-page research allocator |
+| K/V format metadata is explicit at page granularity | Confirmed | `PagedKVCache.metadata_codes`, `KVPage.k_format/v_format`, verifier | K/V share a logical page but can differ in format |
+| Live demotion reclaims real memory without a steady-state FP16 shadow | Confirmed after synchronization | `kv_precision_mechanism.json` exact logical/`torch.cuda.memory_allocated` fields; verifier | Transient source is retained during async conversion until event completion |
+| Mixed-format attention is numerically correct | Confirmed | Explicit reconstruction test and model-backed quality traces | Current path is a PyTorch reference, not fused low-bit attention |
+| Conversion is fast enough by itself | Supported | 0.326--0.495 ms/page medians and 47--94 MiB/s synthetic rates | Per-page Python/allocator overhead; large concurrent arena not tested |
+| Conversion overlaps useful GPU work | Not demonstrated | CUDA event overlap traces are zero-error but hidden fraction is zero | Test uses concurrent matmuls, not a full serving workload |
+| Old-page INT8 quality is near-lossless | Supported but uncertain | 1B/8B paired forced-prefix traces, 100% top-1 for tested old-page fractions | One prompt/checkpoint probe per model and short generation |
+| INT4 quality is safe | No-go in tested proxy | Static/recent variants show NLL increases and top-1 mismatches | Other published outlier/attention-aware quantizers could differ |
+| Live demotion should drive a scheduler now | No-go | Mixed attention is about 3.7--6.9x slower at 50% compression at batch 8/context 1024; no useful overlap | A future packed fused kernel requires a new end-to-end gate |
+| MorphServe was outperformed | Not claimed | Report records MorphServe KVResizer boundary and no equivalent run | MorphServe resizes capacity rather than quantizing live KV pages |

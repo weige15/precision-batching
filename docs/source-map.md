@@ -28,9 +28,9 @@ Line numbers below refer to the research fork at the time this document was writ
    - O: lines 135-142, `self.weight.o_proj`;
    - FFN up/gate and down: lines 150-168.
 4. `vendor/swiftLLM/swiftllm/worker/kernels/linear.py:6-43` keeps the original `torch.nn.functional.linear` operation for missing/all-FP16 metadata. For opted-in low-bit metadata it invokes the explicit eager fake-quantize/dequantize proxy and computes request-row groups separately; it does not pack weights or claim acceleration.
-5. `vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py:81-121` writes K and V into the FP16 paged cache using the block table and layer ID.
-6. `vendor/swiftLLM/swiftllm/worker/kernels/paged_attn.py:152-221` reads the FP16 K/V cache for decode attention through the block table.
-7. `vendor/swiftLLM/swiftllm/worker/model.py:138-178` allocates FP16 GPU/CPU K/V cache and initializes the block managers. KV-cache quantization is not implemented.
+5. `vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py:81-121` writes K and V into the unchanged FP16 paged cache using the block table and layer ID. Its adjacent `store_kvcache_pages` helper writes the optional explicit page store.
+6. `vendor/swiftLLM/swiftllm/worker/kernels/paged_attn.py:152-221` reads the FP16 K/V cache for decode attention through the block table. `vendor/swiftLLM/swiftllm/worker/kv_cache.py` provides the optional page records, quantization, live demotion, and layer-aware mixed-format reference.
+7. `vendor/swiftLLM/swiftllm/worker/model.py:138-178` allocates dense FP16 GPU/CPU K/V cache by default; `EngineConfig.kv_page_format` selects the research page store without changing scheduler admission.
 
 ## Metadata seam
 

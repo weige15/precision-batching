@@ -22,6 +22,10 @@ class EngineConfig:
     max_batch_size: int
     max_tokens_in_batch: int
 
+    # Optional research cache path. ``dense_fp16`` preserves the upstream
+    # allocator; page formats use the explicit page-granular mechanism.
+    kv_page_format: str = "dense_fp16"
+
     @staticmethod
     def add_cli_args(parser: argparse.ArgumentParser):
         """
@@ -81,5 +85,11 @@ class EngineConfig:
             type=int,
             default=32768,
             help="Maximum number of tokens in a batch",
+        )
+        parser.add_argument(
+            "--kv-page-format",
+            choices=("dense_fp16", "fp16", "int8", "int4"),
+            default="dense_fp16",
+            help="Research page-store format; dense_fp16 preserves upstream behavior",
         )
         

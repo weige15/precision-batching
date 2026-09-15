@@ -19,7 +19,34 @@ These notes distinguish what the papers actually study from the projection-preci
 
 ### Implication for this project
 
-QAQ is direct motivation for testing structured K/V sensitivity and query dependence, but it does not establish that runtime precision changes for the **Q, K, and V projection GEMMs** are useful. The present harness therefore tests that missing link separately and labels its weight fake-quantization proxy.
+QAQ motivates separate K/V policies and query dependence, but it does not establish that this repository's live page transition is useful. The earlier structured-weight harness tested the Q/K/V projection-weight question separately; the current KV phase uses QAQ only as a reference and labels its own symmetric page rule as a baseline, not a novelty.
+
+## KIVI
+
+- **Paper:** Zirui Liu et al., “KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache,” arXiv:2402.02750.
+- **Primary source:** <https://arxiv.org/abs/2402.02750>
+- **Code:** <https://github.com/jy-yuan/KIVI>
+
+The paper's abstract and method describe a hardware-friendly 2-bit design with
+per-channel key quantization, per-token value quantization, and a residual
+window. Its reported quality and throughput numbers are paper claims, not
+reproduced by this repository. It is relevant evidence that K and V should not
+necessarily share a quantization axis or policy. This phase deliberately uses
+one conservative symmetric per-group rule instead, so that transition and
+mixed-format costs are isolated from a method-specific quantizer.
+
+## KVQuant
+
+- **Paper:** “KVQuant: Towards 10 Million Context Length LLM Inference with KV Cache Quantization,” arXiv:2401.18079.
+- **Primary source:** <https://arxiv.org/abs/2401.18079>
+
+The primary-source abstract describes per-channel key quantization,
+pre-RoPE key quantization, non-uniform sensitivity-weighted datatypes, and
+per-vector dense/sparse outlier treatment, together with custom CUDA kernels.
+Its reported perplexity, context-length, and speed numbers are not reproduced
+here. The paper is a reference point for what a production-quality low-bit
+attention implementation might need; it is not evidence that this repository's
+reference attention path has comparable speed.
 
 ## MorphServe
 
@@ -41,4 +68,4 @@ MorphServe supports the systems hypothesis that offline sensitivity can drive ru
 
 ## Scope boundary
 
-Neither paper is evidence that this repository's eager FP16-after-dequantization proxy provides low-bit speedup. All local low-bit timings are overhead measurements only. Native packed kernels, KV-cache quantization, dynamic CPU/GPU bit-plane movement, and a precision-aware continuous-batching scheduler remain out of scope until the sensitivity evidence warrants them.
+None of these papers is evidence that this repository's transparent page-store reference path provides low-bit speedup. All local low-bit attention timings are mechanism overhead measurements only. Native packed kernels, dynamic CPU/GPU bit-plane movement, and a precision-aware continuous-batching scheduler remain out of scope; the current result is a feasibility gate for deciding whether to pursue them.

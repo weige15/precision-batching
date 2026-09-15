@@ -19,7 +19,8 @@ git -C /tmp/swiftLLM checkout --detach 682cf9a28f97f7490409981a2f181528f377eb5d
 - SwiftLLM commit: `682cf9a28f97f7490409981a2f181528f377eb5d`
 - Clean snapshot: `vendor/swiftLLM-upstream/`
 - Research fork: `vendor/swiftLLM/`
-- Research diff: `references/swiftllm-research.diff`
+- Structured research diff: `references/swiftllm-research.diff`
+- Live-KV research diff: `references/swiftllm-kv-page.diff`
 - QAQ source/code notes: [`docs/papers.md`](papers.md), `vendor/qaq/`
 - Paper PDFs: `references/qaq-2403.04643.pdf` and `references/morphserve-2506.02006-v2.pdf`
 
@@ -94,5 +95,7 @@ See `docs/feasibility-report.md` for the exact commands and decision, and use
 the checked-in `results/sensitivity/*_interaction_aware.json` artifacts. The
 verifier recomputes profile storage, summary/stability/bootstrap values, shard
 ID separation, combined execution coverage, staged gate provenance, and the
-1B projection count. The experiment is a FP16-after-dequantization numerical
-proxy; it does not measure native kernel speed or KV-cache compression.
+1B projection count. The separate live-KV phase is reproduced with
+`scripts/kv_precision_experiment.py`; see `docs/kv-precision-report.md`. It
+uses actual packed page payloads but a transparent PyTorch mixed-attention
+reference, so it is not evidence of native low-bit kernel speed.

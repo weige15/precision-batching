@@ -22,6 +22,15 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "682cf9a28f97f7490409981a2f181528f377eb5d"
 QAQ_COMMIT = "f8d47e0967c5c5f67f156c1f391a02b5cbd8183f"
 BASE_EXPERIMENT_COMMIT = "b5fc47744d6c4aa1a46206439cdb6b70c29a88ad"
+KV_SOURCE_FILES = (
+    "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
+    "vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py",
+    "vendor/swiftLLM/swiftllm/worker/layers/post_layer.py",
+    "vendor/swiftLLM/swiftllm/worker/model.py",
+    "vendor/swiftLLM/swiftllm/engine_config.py",
+    "scripts/kv_precision_experiment.py",
+)
 
 
 def check(condition: bool, message: str) -> None:
@@ -31,6 +40,14 @@ def check(condition: bool, message: str) -> None:
 
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def source_fingerprint(files: tuple[str, ...]) -> str:
+    digest = hashlib.sha256()
+    for relative in files:
+        digest.update(relative.encode("utf-8"))
+        digest.update((ROOT / relative).read_bytes())
+    return digest.hexdigest()
 
 
 def normalized_log(path: Path) -> list[str]:
@@ -210,7 +227,12 @@ def verify_interaction_aware(path: Path) -> None:
     current_branch = subprocess.check_output(["git", "-C", str(ROOT), "branch", "--show-current"], text=True).strip()
     current_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     check(current_branch == provenance["branch"] == "structured-precision-evidence", f"artifact branch does not match current checkout in {path}")
-    check(current_head == provenance["commit_at_run"] == BASE_EXPERIMENT_COMMIT, f"artifact commit does not match requested checkout in {path}")
+    artifact_commit = provenance["commit_at_run"]
+    is_ancestor = subprocess.run(
+        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", artifact_commit, current_head],
+        check=False,
+    ).returncode == 0
+    check(is_ancestor and artifact_commit == BASE_EXPERIMENT_COMMIT, f"artifact commit is not a historical ancestor of the current checkout in {path}")
     check(provenance["commit_at_run"] == BASE_EXPERIMENT_COMMIT, f"artifact was not run from the requested base commit in {path}")
     check(provenance["base_commit"] == BASE_EXPERIMENT_COMMIT, f"artifact base commit provenance is stale in {path}")
     check(provenance["swiftllm_upstream_commit"] == COMMIT, f"wrong SwiftLLM provenance in {path}")
@@ -408,6 +430,137 @@ def verify_interaction_aware(path: Path) -> None:
     check(data["verification"]["final_gate_decision_recorded"] is True, f"final gate provenance missing in {path}")
 
 
+SHAPES_FOR_KV = {
+    "llama32_1b": {"num_kv_heads": 8, "head_dim": 64},
+    "llama31_8b": {"num_kv_heads": 8, "head_dim": 128},
+}
+
+
+def expected_kv_page_bytes(shape: dict[str, int], page_format: str, group_size: int = 128) -> int:
+    numel = 16 * int(shape["num_kv_heads"]) * int(shape["head_dim"])
+    if page_format == "fp16":
+        return numel * 4
+    groups = math.ceil(numel / group_size)
+    payload = numel * 2 if page_format == "int8" else math.ceil(numel / 2) * 2 if page_format == "int4" else None
+    check(payload is not None, f"unknown KV page format {page_format}")
+    return int(payload) + groups * 4
+
+
+def verify_kv_mechanism(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "live-kv-precision-v1", f"wrong KV mechanism schema in {path}")
+    check(data["provenance"]["branch"] == "structured-precision-evidence", f"KV artifact branch mismatch in {path}")
+    check(data["provenance"]["swiftllm_upstream_commit"] == COMMIT, f"KV SwiftLLM pin mismatch in {path}")
+    check(tuple(data["provenance"]["source_files"]) == KV_SOURCE_FILES, f"KV source manifest mismatch in {path}")
+    check(data["provenance"]["source_sha256"] == source_fingerprint(KV_SOURCE_FILES), f"KV artifact was not produced by the current source manifest in {path}")
+    check(data["scope"]["quantizer_is_new_contribution"] is False, f"new quantizer claimed in {path}")
+    check(data["scope"]["scheduler_changed"] is False and data["scope"]["cpu_gpu_hierarchy_changed"] is False, f"forbidden serving scope changed in {path}")
+    check(data["comparisons"]["queue_or_refuse_capacity"]["reclaimed_bytes"] == 0, f"queue baseline changed in {path}")
+    check(data["comparisons"]["morphserve"]["superiority_claim"] is False, f"MorphServe overclaim in {path}")
+    check(len(data["conversion"]) == 180, f"KV batch/context conversion grid incomplete in {path}")
+    converted_total = 0
+    for row in data["conversion"]:
+        shape = SHAPES_FOR_KV[row["model_family"]]
+        fp16_bytes = expected_kv_page_bytes(shape, "fp16")
+        target_bytes = expected_kv_page_bytes(shape, row["target_format"])
+        resident = int(row["resident_pages"])
+        converted = int(row["converted_pages"])
+        check(converted == round(resident * float(row["fraction"])), f"conversion count/fraction mismatch in {path}")
+        check(int(row["before_logical_bytes"]) == resident * fp16_bytes, f"FP16 storage mismatch in {path}")
+        expected_after = (resident - converted) * fp16_bytes + converted * target_bytes
+        check(int(row["after_logical_bytes"]) == expected_after, f"compressed storage mismatch in {path}")
+        check(int(row["reclaimed_bytes"]) == int(row["before_logical_bytes"]) - int(row["after_logical_bytes"]), f"reclaim arithmetic mismatch in {path}")
+        raw = row["raw_page_conversions"]
+        check(len(raw) == converted and len({(r["block_id"], r["layer_id"]) for r in raw}) == converted, f"raw conversion coverage mismatch in {path}")
+        check(sum(int(r["reclaimed_bytes"]) for r in raw) == int(row["reclaimed_bytes"]), f"raw conversion total mismatch in {path}")
+        for conversion in raw:
+            check(int(conversion["before_bytes"]) == fp16_bytes and int(conversion["after_bytes"]) == target_bytes, f"raw page byte mismatch in {path}")
+        counts = row["metadata_counts"]
+        check(counts["k"].get(row["target_format"], 0) == converted and counts["v"].get(row["target_format"], 0) == converted, f"page metadata mismatch in {path}")
+        check(row["has_unreclaimed_shadow"] is False, f"source shadow retained in {path}")
+        check("before_torch_memory_allocated" in row and "after_torch_memory_allocated" in row, f"actual allocator measurements missing in {path}")
+        if converted:
+            check(int(row["after_torch_memory_allocated"]) < int(row["before_torch_memory_allocated"]), f"actual GPU allocation did not decrease in {path}")
+            check(int(row["torch_allocated_delta"]) > 0, f"actual GPU reclaim is not positive in {path}")
+        converted_total += converted
+    check(converted_total > 0, f"no KV page was converted in {path}")
+
+    expected_trial_keys = {f"batch{batch}_context{context}" for batch in (1, 4, 8) for context in (128, 512, 1024)}
+    for family_result in data["families"]:
+        shape = SHAPES_FOR_KV[family_result["model_family"]]
+        check(set(family_result["trials"]) == expected_trial_keys, f"KV batch/context grid incomplete in {path}")
+        for trial in family_result["trials"].values():
+            records = [trial["fp16"], *trial["static"], *trial["mixed"]]
+            for record in records:
+                timing = record["attention"]
+                check(len(timing["replicate_elapsed_ms"]) == int(timing["repetitions"]) == 3, f"attention repeats missing in {path}")
+                check(float(timing["per_decode_ms_median"]) > 0 and int(timing["stored_payload_bytes_processed_per_iteration"]) > 0, f"attention measurement missing in {path}")
+                storage = record["storage"]
+                check(int(storage["allocated_payload_bytes_including_pending"]) == int(storage["logical_payload_bytes"]), f"attention record has pending source storage in {path}")
+            for target in ("int8", "int4"):
+                static = next(r for r in trial["static"] if r["target_format"] == target)
+                check(static["storage"]["logical_payload_bytes"] == int(static["resident_pages"]) * expected_kv_page_bytes(shape, target), f"static {target} bytes mismatch in {path}")
+                mixed = next(r for r in trial["mixed"] if r["target_format"] == target and r["compressed_fraction"] == 0.5)
+                pages = int(mixed["resident_pages"])
+                compressed = round(pages * 0.5)
+                expected = (pages - compressed) * expected_kv_page_bytes(shape, "fp16") + compressed * expected_kv_page_bytes(shape, target)
+                check(mixed["storage"]["logical_payload_bytes"] == expected, f"mixed {target} bytes mismatch in {path}")
+    for row in data["overlap"]:
+        check(row["supported"] is True and float(row["max_error_after_event_ordering"]) <= 1e-5, f"overlap correctness failed in {path}")
+        check(row["pending_before_consumer_read"] is True and row["pending_after_consumer_read"] is True, f"consumer did not exercise pending event ordering in {path}")
+        check(row["has_unreclaimed_shadow_after_sync"] is False, f"overlap source shadow retained in {path}")
+        check(float(row["work_alone_ms"]) > 0 and float(row["overlap_wall_ms"]) > 0, f"overlap timing missing in {path}")
+    check({row["target_format"] for row in data["overlap"]} == {"int8", "int4"}, f"overlap formats incomplete in {path}")
+
+
+def verify_kv_quality(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "live-kv-precision-v1", f"wrong KV quality schema in {path}")
+    check(data["provenance"]["swiftllm_upstream_commit"] == COMMIT, f"quality SwiftLLM pin mismatch in {path}")
+    check(tuple(data["provenance"]["source_files"]) == KV_SOURCE_FILES, f"quality source manifest mismatch in {path}")
+    check(data["provenance"]["source_sha256"] == source_fingerprint(KV_SOURCE_FILES), f"quality artifact was not produced by the current source manifest in {path}")
+    check(len(data.get("quality", [])) == 1, f"quality artifact should contain one run in {path}")
+    run = data["quality"][0]
+    check(Path(run["model_path"]).exists(), f"quality checkpoint unavailable in {path}")
+    baseline = run["baseline"]
+    check(baseline["kind"] == "unchanged_fp16_dense", f"quality baseline is not dense FP16 in {path}")
+    generation_tokens = int(baseline["generation_tokens"])
+    check(len(baseline["tokens"]) == generation_tokens and len(baseline["latency"]["decode_ms"]) == generation_tokens - 1, f"baseline trace incomplete in {path}")
+    names = {variant["name"] for variant in run["variants"]}
+    required = {"page_fp16_control", "static_int8", "static_int4", "dynamic_old_int4_50_both", "dynamic_recent_int4_50_both", "dynamic_old_int8_50_early", "dynamic_old_int8_50_late", "dynamic_old_int8_50_k_only", "dynamic_old_int8_50_v_only"}
+    required |= {f"dynamic_{recency}_int8_{fraction}_both" for recency in ("old", "recent") for fraction in (25, 50, 75)}
+    check(required <= names, f"quality policy grid incomplete in {path}")
+    for variant in run["variants"]:
+        quality = variant["quality"]
+        check(len(quality["per_step"]) == generation_tokens, f"quality per-step trace incomplete in {path}/{variant['name']}")
+        agree = [bool(row["top1_agrees"]) for row in quality["per_step"]]
+        close(float(quality["forced_prefix_top1_agreement"]), sum(agree) / len(agree), f"{path}/{variant['name']}/agreement")
+        close(float(quality["baseline_token_nll_mean"]), sum(float(row["nll"]) for row in quality["per_step"]) / generation_tokens, f"{path}/{variant['name']}/nll")
+        close(float(quality["reference_fp16_token_nll_mean"]), sum(float(row["reference_nll"]) for row in quality["per_step"]) / generation_tokens, f"{path}/{variant['name']}/reference_nll")
+        close(float(quality["paired_nll_delta_mean"]), sum(float(row["nll_delta"]) for row in quality["per_step"]) / generation_tokens, f"{path}/{variant['name']}/nll_delta")
+        check(len(variant["latency"]["decode_ms"]) == generation_tokens - 1, f"quality latency trace incomplete in {path}/{variant['name']}")
+        if variant["name"] != "page_fp16_control":
+            check("page_fp16_reference" in quality, f"quality is confounded by missing page FP16 control in {path}/{variant['name']}")
+        storage = variant["storage"]
+        if variant["name"] == "page_fp16_control":
+            check(float(variant["fraction"]) == 0.0 and variant["target_format"] == "fp16", f"page FP16 control metadata is stale in {path}")
+            check(storage["metadata_counts"]["k"].get("fp16") == storage["resident_pages"], f"page FP16 K control format mismatch in {path}")
+            check(storage["metadata_counts"]["v"].get("fp16") == storage["resident_pages"], f"page FP16 V control format mismatch in {path}")
+        if variant["name"].startswith("static_"):
+            check(float(variant["fraction"]) == 1.0 and variant["demoted_pages"] == 0, f"static quality metadata is stale in {path}/{variant['name']}")
+            check(storage["metadata_counts"]["k"].get(variant["target_format"]) == storage["resident_pages"], f"static K format mismatch in {path}/{variant['name']}")
+            check(storage["metadata_counts"]["v"].get(variant["target_format"]) == storage["resident_pages"], f"static V format mismatch in {path}/{variant['name']}")
+        check(storage["no_dense_fp16_shadow"] is True, f"quality source shadow retained in {path}/{variant['name']}")
+        if variant["demoted_pages"]:
+            check(len(variant["demotions"]) == variant["demoted_pages"], f"demotion trace incomplete in {path}/{variant['name']}")
+            for demotion in variant["demotions"]:
+                check(int(demotion["result"]["before_bytes"]) > int(demotion["result"]["after_bytes"]), f"quality demotion did not reclaim bytes in {path}/{variant['name']}")
+        else:
+            check(variant["name"] in {"page_fp16_control", "static_int8", "static_int4"}, f"unexpected quality variant has no conversion in {path}/{variant['name']}")
+    check(data["comparisons"]["queue_or_refuse_capacity"]["reclaimed_bytes"] == 0, f"quality queue comparison missing in {path}")
+    check(data["comparisons"]["morphserve"]["superiority_claim"] is False, f"quality MorphServe comparison overclaims in {path}")
+
+
 def main() -> None:
     check((ROOT / "vendor/swiftLLM/UPSTREAM_COMMIT").read_text().strip() == COMMIT, "research marker is not pinned")
     check((ROOT / "vendor/swiftLLM-upstream/UPSTREAM_COMMIT").read_text().strip() == COMMIT, "clean marker is not pinned")
@@ -417,12 +570,16 @@ def main() -> None:
     check(provenance["swiftllm_research_diff_sha256"] == file_sha256(ROOT / "references/swiftllm-research.diff"), "research provenance diff is stale")
     check(provenance["requirements_lock_sha256"] == file_sha256(ROOT / "requirements-lock.txt"), "requirements lock provenance is stale")
     check(normalized_log(ROOT / "results/baseline/swiftllm_unmodified_1b.log") == normalized_log(ROOT / "results/baseline/swiftllm_precision_noop_1b.log"), "baseline/no-op outputs differ")
+    check(normalized_log(ROOT / "results/baseline/swiftllm_unmodified_1b.log") == normalized_log(ROOT / "results/baseline/swiftllm_precision_noop_kv_phase.log"), "current KV-phase default outputs differ")
     verify_matrix(ROOT / "results/sensitivity/llama32_1b_qkv_matrix.json", 8)
     verify_matrix(ROOT / "results/sensitivity/llama31_8b_qkv_matrix.json", 8)
     verify_matrix(ROOT / "results/sensitivity/llama32_1b_qkv_matrix_layer_sweep.json", 8, 16)
     verify_matrix(ROOT / "results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json", 4, 32)
     verify_interaction_aware(ROOT / "results/sensitivity/llama32_1b_interaction_aware.json")
     verify_interaction_aware(ROOT / "results/sensitivity/llama31_8b_interaction_aware.json")
+    verify_kv_mechanism(ROOT / "results/sensitivity/kv_precision_mechanism.json")
+    verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_1b.json")
+    verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_8b.json")
     invocations = json.loads((ROOT / "results/baseline/invocations.json").read_text())["commands"]
     invocation_names = {row["name"] for row in invocations}
     check("interaction_aware_structured_llama32_1b" in invocation_names, "1B interaction-aware invocation is missing")
@@ -438,11 +595,22 @@ def main() -> None:
         "references/qaq-2403.04643.pdf",
         "references/morphserve-2506.02006-v2.pdf",
         "references/swiftllm-research.diff",
+        "references/swiftllm-kv-page.diff",
         "requirements-lock.txt",
         "results/baseline/research-provenance.json",
+        "results/baseline/unit-tests-kv-phase.log",
+        "results/baseline/artifact-verification-kv-phase.log",
+        "results/baseline/noop-output-comparison-kv-phase.txt",
+        "results/baseline/swiftllm_precision_noop_kv_phase.log",
+        "results/sensitivity/kv_precision_mechanism.json",
+        "results/sensitivity/kv_precision_mechanism.log",
+        "results/sensitivity/kv_precision_quality_1b.json",
+        "results/sensitivity/kv_precision_quality_1b.log",
+        "results/sensitivity/kv_precision_quality_8b.json",
+        "results/sensitivity/kv_precision_quality_8b.log",
     ):
         check((ROOT / required).exists(), f"missing required artifact: {required}")
-    print("artifact verification passed: W8-centered/confirmation evidence, combined search, 1B 243 projection runs, heldout separation, and final gates verified")
+    print("artifact verification passed: historical structured gate plus live-KV page storage, conversion, mixed attention, overlap, and quality traces verified")
 
 
 if __name__ == "__main__":
