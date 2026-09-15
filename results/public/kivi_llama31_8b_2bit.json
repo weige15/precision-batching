@@ -1,0 +1,188 @@
+{
+  "method": "KIVI",
+  "upstream_commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+  "model_path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+  "model_config": {
+    "num_attention_heads": 32,
+    "num_key_value_heads": 8,
+    "head_dim": 128,
+    "gqa_groups": 4
+  },
+  "kivi_config": {
+    "k_bits": 2,
+    "v_bits": 2,
+    "group_size": 32,
+    "residual_length": 32
+  },
+  "device": "NVIDIA GeForce RTX 3090",
+  "cuda_capability": [
+    8,
+    6
+  ],
+  "compatibility": {
+    "transformers": "4.51.3",
+    "flash_attn_provider": "vllm_flash_attn.flash_attn_func/varlen_func",
+    "compatibility": "KIVI star-import exports + flash_attn.bert_padding shim",
+    "upstream_kivi_source_modified": "false"
+  },
+  "prompt_tokens": 128,
+  "decode_tokens": 8,
+  "targets": [
+    16053,
+    5679,
+    13,
+    1115,
+    374,
+    264,
+    53823,
+    79385
+  ],
+  "baseline_fp16": {
+    "prefill_ms": [
+      49.21215400099754,
+      49.75992604158819
+    ],
+    "decode_ms_for_tokens": [
+      262.0182179962285,
+      251.03580800350755
+    ],
+    "decode_ms_per_token": [
+      32.75227724952856,
+      31.379476000438444
+    ],
+    "cache_bytes": [
+      8388608,
+      8388608
+    ],
+    "allocated_delta_bytes": [
+      17033728,
+      -1048576
+    ],
+    "peak_delta_bytes": [
+      51380224,
+      51380224
+    ],
+    "paired_nll": [
+      0.0026117660163436085,
+      0.0026117660163436085
+    ],
+    "top1_agreement": [
+      1.0,
+      1.0
+    ],
+    "cache_summary": {
+      "kind": "DynamicCache",
+      "layers": 32,
+      "key0": [
+        1,
+        8,
+        136,
+        128
+      ],
+      "value0": [
+        1,
+        8,
+        136,
+        128
+      ]
+    }
+  },
+  "kivi": {
+    "prefill_ms": [
+      64.46405901806429,
+      60.330611013341695
+    ],
+    "decode_ms_for_tokens": [
+      508.38986900635064,
+      501.49943795986474
+    ],
+    "decode_ms_per_token": [
+      63.54873362579383,
+      62.68742974498309
+    ],
+    "cache_bytes": [
+      4849664,
+      4849664
+    ],
+    "allocated_delta_bytes": [
+      5362688,
+      -622592
+    ],
+    "peak_delta_bytes": [
+      105119744,
+      105119744
+    ],
+    "paired_nll": [
+      0.0029315712017705664,
+      0.0029315712017705664
+    ],
+    "top1_agreement": [
+      1.0,
+      1.0
+    ],
+    "cache_summary": {
+      "kind": "kivi_legacy_tuple",
+      "layers": 32,
+      "layer0": [
+        [
+          1,
+          8,
+          128,
+          8
+        ],
+        [
+          1,
+          8,
+          8,
+          128
+        ],
+        [
+          1,
+          8,
+          128,
+          4
+        ],
+        [
+          1,
+          8,
+          128,
+          4
+        ],
+        [
+          1,
+          8,
+          104,
+          8
+        ],
+        [
+          1,
+          8,
+          32,
+          128
+        ],
+        [
+          1,
+          8,
+          104,
+          4
+        ],
+        [
+          1,
+          8,
+          104,
+          4
+        ],
+        136
+      ]
+    }
+  },
+  "summary": {
+    "fp16_cache_bytes_median": 8388608,
+    "kivi_cache_bytes_median": 4849664,
+    "cache_reduction_ratio": 0.421875,
+    "decode_slowdown": 1.9402844309614702,
+    "paired_nll_delta": 0.0003198051854269579,
+    "top1_agreement_vs_targets": 1.0
+  },
+  "invocation": "scripts/reproduce_kivi.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b --output results/public/kivi_llama31_8b_2bit.json --device cuda:0 --prompt-tokens 128 --decode-tokens 8 --warmups 1 --repeats 2 --bits 2 --group-size 32 --residual-length 32"
+}

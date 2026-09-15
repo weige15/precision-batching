@@ -1,0 +1,91 @@
+{
+  "study_branch": "low-bit-kv-reproduction",
+  "study_base_commit": "283bb24",
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "compute_capability": "8.6",
+    "torch": "2.4.0+cu121",
+    "transformers": "4.51.3",
+    "cuda_toolkit": "12.4.99",
+    "model_checkpoints": {
+      "llama32_1b": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+      "llama31_8b": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b"
+    }
+  },
+  "implementations": [
+    {
+      "name": "KIVI",
+      "url": "https://github.com/jy-yuan/KIVI",
+      "default_branch": "main",
+      "commit": "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6",
+      "paper": "https://arxiv.org/abs/2402.02750",
+      "public_complete_enough": true,
+      "supports_ampere_3090": "confirmed: CUDA extension compiled for sm_86 with CUDA 12.4/PyTorch 2.4.0",
+      "supports_llama_gqa": "confirmed by Llama 3.2 1B (32 Q heads/8 KV heads) and Llama 3.1 8B (32 Q heads/8 KV heads) runs after compatibility adaptation",
+      "layout": "K per-channel over token groups, V per-token over head-dimension groups; packed int32 codes, FP16 scale/min metadata, FP16 residual window",
+      "precision": "2 or 4 bits; residual recent tokens remain FP16",
+      "optimized_decode": "confirmed: upstream Triton pack/decode plus kivi_gemv CUDA GEMV path consumed during incremental decode",
+      "local_artifacts": [
+        "results/public/kivi_llama32_1b_2bit.json",
+        "results/public/kivi_llama32_1b_4bit.json",
+        "results/public/kivi_llama32_1b_2bit_ctx256.json",
+        "results/public/kivi_llama32_1b_batch4_ctx256_2bit.json",
+        "results/public/kivi_llama31_8b_2bit.json"
+      ]
+    },
+    {
+      "name": "KVQuant",
+      "url": "https://github.com/SqueezeAILab/KVQuant",
+      "default_branch": "main",
+      "commit": "57a238357f0ffe50084670fcd5781c9848f80ea2",
+      "paper": "https://arxiv.org/abs/2401.18079",
+      "public_complete_enough": true,
+      "supports_ampere_3090": "CUDA extension compiled successfully for sm_86 with local CUDA 12.4/PyTorch 2.4.0",
+      "supports_llama_gqa": "blocked: deployment/transformers/src/transformers/models/llama/modeling_llama.py:1408 asserts num_key_value_groups == 1; local Llama 3.x has 32/8 GQA",
+      "layout": "packed 2/3/4-bit cache with NUQ lookup tables and optional sparse outliers; separate K/V cache objects",
+      "precision": "2/3/4 bits in deployment kernels, with optional FP16 first tokens and sparse outlier storage",
+      "optimized_decode": "confirmed in source: quant_cuda fused K/Q and attention matmul/append entry points; end-to-end local GQA reproduction blocked before model execution",
+      "local_artifacts": ["results/public/kvquant_build.log", "results/public/kvquant_gqa_blocked.log"]
+    },
+    {
+      "name": "Kitty",
+      "url": "https://github.com/Summer-Summer/Kitty",
+      "default_branch": "main",
+      "commit": "dfd2c07b407d6b407179359207c612ab631f3ed1",
+      "paper": "https://arxiv.org/abs/2511.18643",
+      "public_complete_enough": "partial for this study: current tree has Kitty cache/Triton kernels and Qwen3 integration, but no Llama model wrapper and its required Transformers/lm-eval submodules were not initialized",
+      "supports_ampere_3090": "confirmed for the public Triton kernels on RTX 3090; no CUDA extension required",
+      "supports_llama_gqa": "kernel-level GQA portability confirmed with Llama 3.2 1B dimensions (32 Q heads/8 KV heads/D64); end-to-end Llama support absent in this commit",
+      "layout": "paged uint8 K/V payloads, FP16 metadata, 128-token pages, 32-token FP16 sink, 25% K channel promotion from INT2 to INT4, FP16 local/value buffer",
+      "precision": "K2/V2 with 25% key channels K4 in the shipped Kitty-Pro policy",
+      "optimized_decode": "confirmed at kernel level: upstream Triton quantize-pack K/V and fused qk/sv attention",
+      "local_artifacts": ["results/public/kitty_llama_gqa_kernel.json", "results/public/kitty_llama_gqa_kernel_ctx512.json"]
+    },
+    {
+      "name": "QAQ",
+      "url": "https://github.com/ClubieDong/QAQ-KVCacheQuantization",
+      "default_branch": "master",
+      "commit": "f8d47e0967c5c5f67f156c1f391a02b5cbd8183f",
+      "paper": "https://arxiv.org/abs/2403.04643",
+      "public_complete_enough": true,
+      "supports_ampere_3090": "not attempted: source has no CUDA/Triton/C++ kernel build",
+      "supports_llama_gqa": "not established; evaluator uses generic Transformers past_key_values and source predates the local Llama 3 path",
+      "layout": "dequantized FP16 tensors returned by Quantizer; quantized integer payload is not retained for attention",
+      "precision": "uniform/normal, token/layer/head-level simulated quantization",
+      "optimized_decode": "negative: src/quantizer.py returns denormalized FP16 tensors and src/evaluator.py feeds those tensors to ordinary model.forward; no low-bit storage or fused decode path",
+      "local_artifacts": ["vendor/qaq/UPSTREAM_COMMIT", "vendor/qaq/src/quantizer.py", "vendor/qaq/src/evaluator.py"]
+    },
+    {
+      "name": "Minima-KV",
+      "url": null,
+      "commit": null,
+      "public_complete_enough": false,
+      "supports_ampere_3090": "blocked: no canonical public repository identified under the exact name",
+      "supports_llama_gqa": "blocked",
+      "layout": null,
+      "precision": null,
+      "optimized_decode": "blocked: paper/project identity and author-linked code repository unresolved; no similarly named repository was substituted",
+      "local_artifacts": []
+    }
+  ]
+}

@@ -13,9 +13,9 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - [Completion audit](docs/completion-audit.md) — structured-precision historical evidence.
 - [KV page format](docs/kv-page-format.md) — page ownership, formats, quantizer, and mixed attention seam.
 - [KV feasibility report](docs/kv-precision-report.md) — live-demotion measurements, quality, blockers, and decision.
-- [KV completion audit](docs/kv-completion-audit.md) — audit of the earlier live-page mechanism phase.
-- [GPU-memory break-even report](docs/kv-break-even-report.md) — optimized INT8 gate and matched queue/offload/compression map.
-- [GPU-memory break-even audit](docs/kv-break-even-completion-audit.md) — requirement-by-requirement audit for the active objective.
+- [KV completion audit](docs/kv-completion-audit.md) — requirement-by-requirement audit for this phase.
+- [Public low-bit KV study](docs/public-kv-study.md) — KIVI/KVQuant/Kitty/QAQ/Minima-KV provenance, local reproductions, and integration recommendation.
+- [Public KV completion audit](docs/public-kv-completion-audit.md) — objective-to-artifact checklist and verification status.
 
 ## What is included
 
