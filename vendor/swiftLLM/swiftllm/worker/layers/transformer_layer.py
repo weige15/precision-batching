@@ -136,7 +136,18 @@ class LlamaTransformerLayer:
                         self.layer_id,
                         o[infer_state.num_prefill_tokens:, :],
                     )
+                elif page_kv_cache.optimized_attention_supported(self.layer_id):
+                    page_kv_cache.optimized_attention(
+                        q[infer_state.num_prefill_tokens:, :, :],
+                        block_table,
+                        infer_state.seq_ids[infer_state.num_prefill_seqs:],
+                        infer_state.decoding_seq_lens,
+                        self.model_config, self.engine_config, self.layer_id,
+                        o[infer_state.num_prefill_tokens:, :],
+                    )
                 else:
+                    # The optimized enabling path is intentionally INT8/FP16
+                    # only; retain the old oracle for INT4 experiments.
                     page_attention_for_layer(
                         q[infer_state.num_prefill_tokens:, :, :],
                         page_kv_cache, block_table,

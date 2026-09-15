@@ -68,4 +68,4 @@ MorphServe supports the systems hypothesis that offline sensitivity can drive ru
 
 ## Scope boundary
 
-None of these papers is evidence that this repository's transparent page-store reference path provides low-bit speedup. All local low-bit attention timings are mechanism overhead measurements only. Native packed kernels, dynamic CPU/GPU bit-plane movement, and a precision-aware continuous-batching scheduler remain out of scope; the current result is a feasibility gate for deciding whether to pursue them.
+None of these papers is evidence that this repository's page-store path provides low-bit speedup. The follow-up adds a small native-format segmented Triton enabling kernel and measures it directly; its timings remain mechanism/action-cost evidence only. Dynamic CPU/GPU bit-plane movement and a precision-aware continuous-batching scheduler remain out of scope because the matched gate rejected INT8.

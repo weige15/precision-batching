@@ -1,0 +1,954 @@
+{
+  "schema": "live-kv-optimized-int8-v1",
+  "provenance": {
+    "branch": "structured-precision-evidence",
+    "git_head": "283bb249dd13e48465e04992a61be54936936550",
+    "swiftllm_upstream_commit": "682cf9a28f97f7490409981a2f181528f377eb5d",
+    "source_files": [
+      "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+      "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
+      "vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py",
+      "vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py",
+      "vendor/swiftLLM/swiftllm/worker/layers/post_layer.py",
+      "vendor/swiftLLM/swiftllm/worker/model.py",
+      "vendor/swiftLLM/swiftllm/engine_config.py",
+      "scripts/kv_precision_experiment.py"
+    ],
+    "source_sha256": "2e3b1e208fa0b54e96a912830b0e98f8f16f8fe0ae1e04522456185ccb4b3b66",
+    "device": "cuda:0",
+    "seed": 20261011,
+    "oracle": "page_attention_for_layer",
+    "kernel": "segmented_paged_attention"
+  },
+  "smoke": [
+    {
+      "model_shape": {
+        "num_layers": 16,
+        "num_q_heads": 32,
+        "num_kv_heads": 8,
+        "head_dim": 64
+      },
+      "batch": 4,
+      "context_tokens": 256,
+      "resident_pages": 64,
+      "converted_pages": 32,
+      "batch_conversion": {
+        "target_format": "int8",
+        "pages": 32,
+        "before_bytes": 1048576,
+        "after_bytes": 532480,
+        "reclaimed_bytes": 516096,
+        "elapsed_ms": 65.8309097290039,
+        "latency_ms_per_page": 2.057215929031372,
+        "temporary_bytes": 1048576,
+        "has_unreclaimed_shadow": false,
+        "per_page": [
+          {
+            "block_id": 0,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 1,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 2,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 3,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 4,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 5,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 6,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 7,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 8,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 9,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 10,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 11,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 12,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 13,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 14,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 15,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 16,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 17,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 18,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 19,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 20,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 21,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 22,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 23,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 24,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 25,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 26,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 27,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 28,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 29,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 30,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          },
+          {
+            "block_id": 31,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 32768,
+            "after_bytes": 16640,
+            "elapsed_ms": 2.057215929031372,
+            "temporary_bytes": 32768
+          }
+        ]
+      },
+      "attention": {
+        "iterations": 10,
+        "repetitions": 3,
+        "replicate_elapsed_ms": [
+          30.808992385864258,
+          28.535808563232422,
+          29.604703903198242
+        ],
+        "elapsed_ms_median": 29.604703903198242,
+        "per_decode_ms_median": 2.9604703903198244,
+        "output_checksum": 2.668461799621582
+      },
+      "correctness": {
+        "max_abs_error_vs_reference": 0.000244140625,
+        "mean_abs_error_vs_reference": 1.1980533599853516e-05,
+        "optimized_has_nan": false
+      }
+    },
+    {
+      "model_shape": {
+        "num_layers": 32,
+        "num_q_heads": 32,
+        "num_kv_heads": 8,
+        "head_dim": 128
+      },
+      "batch": 4,
+      "context_tokens": 256,
+      "resident_pages": 64,
+      "converted_pages": 32,
+      "batch_conversion": {
+        "target_format": "int8",
+        "pages": 32,
+        "before_bytes": 2097152,
+        "after_bytes": 1064960,
+        "reclaimed_bytes": 1032192,
+        "elapsed_ms": 0.9722239971160889,
+        "latency_ms_per_page": 0.030381999909877777,
+        "temporary_bytes": 2097152,
+        "has_unreclaimed_shadow": false,
+        "per_page": [
+          {
+            "block_id": 0,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 1,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 2,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 3,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 4,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 5,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 6,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 7,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 8,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 9,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 10,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 11,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 12,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 13,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 14,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 15,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 16,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 17,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 18,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 19,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 20,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 21,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 22,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 23,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 24,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 25,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 26,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 27,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 28,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 29,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 30,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          },
+          {
+            "block_id": 31,
+            "layer_id": 0,
+            "target_format": "int8",
+            "components": [
+              "k",
+              "v"
+            ],
+            "before_bytes": 65536,
+            "after_bytes": 33280,
+            "elapsed_ms": 0.030381999909877777,
+            "temporary_bytes": 65536
+          }
+        ]
+      },
+      "attention": {
+        "iterations": 10,
+        "repetitions": 3,
+        "replicate_elapsed_ms": [
+          30.693376541137695,
+          30.14348793029785,
+          30.79987144470215
+        ],
+        "elapsed_ms_median": 30.693376541137695,
+        "per_decode_ms_median": 3.0693376541137694,
+        "output_checksum": 0.6316928863525391
+      },
+      "correctness": {
+        "max_abs_error_vs_reference": 0.000244140625,
+        "mean_abs_error_vs_reference": 1.150369644165039e-05,
+        "optimized_has_nan": false
+      }
+    }
+  ],
+  "invocation": {
+    "argv": [
+      "scripts/kv_precision_experiment.py",
+      "--optimized-smoke",
+      "--output",
+      "results/sensitivity/kv_precision_optimized_smoke_final.json",
+      "--device",
+      "cuda:0",
+      "--seed",
+      "20261011"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

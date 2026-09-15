@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "682cf9a28f97f7490409981a2f181528f377eb5d"
 QAQ_COMMIT = "f8d47e0967c5c5f67f156c1f391a02b5cbd8183f"
 BASE_EXPERIMENT_COMMIT = "b5fc47744d6c4aa1a46206439cdb6b70c29a88ad"
-KV_SOURCE_FILES = (
+KV_LEGACY_SOURCE_FILES = (
     "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
     "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
     "vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py",
@@ -30,6 +30,27 @@ KV_SOURCE_FILES = (
     "vendor/swiftLLM/swiftllm/worker/model.py",
     "vendor/swiftLLM/swiftllm/engine_config.py",
     "scripts/kv_precision_experiment.py",
+)
+KV_OPTIMIZED_SOURCE_FILES = (
+    "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py",
+    "vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py",
+    "vendor/swiftLLM/swiftllm/worker/layers/post_layer.py",
+    "vendor/swiftLLM/swiftllm/worker/model.py",
+    "vendor/swiftLLM/swiftllm/engine_config.py",
+    "scripts/kv_precision_experiment.py",
+)
+LEGACY_KV_HEAD = "1351139bfab5fa1a629af5352687aa8aa45e0914"
+LEGACY_KV_SOURCE_SHA256 = "5849053a31cd96b7d222af5568d1fc3ab5ca3bdbff957973bfc8421c6fc2b28d"
+BREAK_EVEN_SOURCE_FILES = (
+    "scripts/kv_break_even_experiment.py",
+    "scripts/kv_precision_experiment.py",
+    "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/paged_attn.py",
+    "vendor/swiftLLM/swiftllm/worker/model.py",
+    "vendor/swiftLLM/csrc/src/block_swapping.cpp",
 )
 
 
@@ -446,13 +467,25 @@ def expected_kv_page_bytes(shape: dict[str, int], page_format: str, group_size: 
     return int(payload) + groups * 4
 
 
+def verify_kv_provenance(data: dict, path: Path) -> None:
+    source_files = tuple(data["provenance"]["source_files"])
+    if source_files == KV_LEGACY_SOURCE_FILES:
+        # These large legacy grids were executed before the optimized path was
+        # added.  Keep them as historical controls, but bind them to their
+        # recorded commit rather than silently accepting a stale current hash.
+        check(data["provenance"].get("git_head") == LEGACY_KV_HEAD, f"legacy KV provenance commit mismatch in {path}")
+        check(data["provenance"]["source_sha256"] == LEGACY_KV_SOURCE_SHA256, f"legacy KV source hash mismatch in {path}")
+    else:
+        check(source_files == KV_OPTIMIZED_SOURCE_FILES, f"KV source manifest mismatch in {path}")
+        check(data["provenance"]["source_sha256"] == source_fingerprint(KV_OPTIMIZED_SOURCE_FILES), f"optimized KV artifact was not produced by the current source manifest in {path}")
+
+
 def verify_kv_mechanism(path: Path) -> None:
     data = json.loads(path.read_text())
     check(data["schema"] == "live-kv-precision-v1", f"wrong KV mechanism schema in {path}")
     check(data["provenance"]["branch"] == "structured-precision-evidence", f"KV artifact branch mismatch in {path}")
     check(data["provenance"]["swiftllm_upstream_commit"] == COMMIT, f"KV SwiftLLM pin mismatch in {path}")
-    check(tuple(data["provenance"]["source_files"]) == KV_SOURCE_FILES, f"KV source manifest mismatch in {path}")
-    check(data["provenance"]["source_sha256"] == source_fingerprint(KV_SOURCE_FILES), f"KV artifact was not produced by the current source manifest in {path}")
+    verify_kv_provenance(data, path)
     check(data["scope"]["quantizer_is_new_contribution"] is False, f"new quantizer claimed in {path}")
     check(data["scope"]["scheduler_changed"] is False and data["scope"]["cpu_gpu_hierarchy_changed"] is False, f"forbidden serving scope changed in {path}")
     check(data["comparisons"]["queue_or_refuse_capacity"]["reclaimed_bytes"] == 0, f"queue baseline changed in {path}")
@@ -517,8 +550,7 @@ def verify_kv_quality(path: Path) -> None:
     data = json.loads(path.read_text())
     check(data["schema"] == "live-kv-precision-v1", f"wrong KV quality schema in {path}")
     check(data["provenance"]["swiftllm_upstream_commit"] == COMMIT, f"quality SwiftLLM pin mismatch in {path}")
-    check(tuple(data["provenance"]["source_files"]) == KV_SOURCE_FILES, f"quality source manifest mismatch in {path}")
-    check(data["provenance"]["source_sha256"] == source_fingerprint(KV_SOURCE_FILES), f"quality artifact was not produced by the current source manifest in {path}")
+    verify_kv_provenance(data, path)
     check(len(data.get("quality", [])) == 1, f"quality artifact should contain one run in {path}")
     run = data["quality"][0]
     check(Path(run["model_path"]).exists(), f"quality checkpoint unavailable in {path}")
@@ -530,6 +562,7 @@ def verify_kv_quality(path: Path) -> None:
     required = {"page_fp16_control", "static_int8", "static_int4", "dynamic_old_int4_50_both", "dynamic_recent_int4_50_both", "dynamic_old_int8_50_early", "dynamic_old_int8_50_late", "dynamic_old_int8_50_k_only", "dynamic_old_int8_50_v_only"}
     required |= {f"dynamic_{recency}_int8_{fraction}_both" for recency in ("old", "recent") for fraction in (25, 50, 75)}
     check(required <= names, f"quality policy grid incomplete in {path}")
+    optimized_quality = tuple(data["provenance"]["source_files"]) == KV_OPTIMIZED_SOURCE_FILES
     for variant in run["variants"]:
         quality = variant["quality"]
         check(len(quality["per_step"]) == generation_tokens, f"quality per-step trace incomplete in {path}/{variant['name']}")
@@ -553,12 +586,103 @@ def verify_kv_quality(path: Path) -> None:
         check(storage["no_dense_fp16_shadow"] is True, f"quality source shadow retained in {path}/{variant['name']}")
         if variant["demoted_pages"]:
             check(len(variant["demotions"]) == variant["demoted_pages"], f"demotion trace incomplete in {path}/{variant['name']}")
+            if optimized_quality and "int8" in variant["name"] and tuple(variant["components"]) == ("k", "v"):
+                conversion = variant.get("conversion")
+                check(conversion is not None and conversion["batched"] is True, f"optimized INT8 quality conversion was not batched in {path}/{variant['name']}")
+                check(int(conversion["pages"]) == int(variant["demoted_pages"]), f"optimized INT8 conversion page count mismatch in {path}/{variant['name']}")
+                check(int(conversion["reclaimed_bytes"]) > 0 and float(conversion["elapsed_ms"]) >= 0, f"optimized INT8 conversion metrics missing in {path}/{variant['name']}")
             for demotion in variant["demotions"]:
                 check(int(demotion["result"]["before_bytes"]) > int(demotion["result"]["after_bytes"]), f"quality demotion did not reclaim bytes in {path}/{variant['name']}")
         else:
             check(variant["name"] in {"page_fp16_control", "static_int8", "static_int4"}, f"unexpected quality variant has no conversion in {path}/{variant['name']}")
     check(data["comparisons"]["queue_or_refuse_capacity"]["reclaimed_bytes"] == 0, f"quality queue comparison missing in {path}")
     check(data["comparisons"]["morphserve"]["superiority_claim"] is False, f"quality MorphServe comparison overclaims in {path}")
+
+
+def verify_optimized_smoke(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "live-kv-optimized-int8-v1", f"wrong optimized smoke schema in {path}")
+    provenance = data["provenance"]
+    check(provenance["swiftllm_upstream_commit"] == COMMIT, f"optimized smoke SwiftLLM pin mismatch in {path}")
+    check(tuple(provenance["source_files"]) == KV_OPTIMIZED_SOURCE_FILES, f"optimized smoke source manifest mismatch in {path}")
+    check(provenance["source_sha256"] == source_fingerprint(KV_OPTIMIZED_SOURCE_FILES), f"optimized smoke source hash mismatch in {path}")
+    check({int(row["model_shape"]["head_dim"]) for row in data["smoke"]} == {64, 128}, f"optimized smoke model-shape coverage missing in {path}")
+    for row in data["smoke"]:
+        conversion = row["batch_conversion"]
+        check(conversion["target_format"] == "int8" and conversion["has_unreclaimed_shadow"] is False, f"optimized smoke conversion state missing in {path}")
+        check(int(conversion["pages"]) == int(row["converted_pages"]) and int(conversion["reclaimed_bytes"]) > 0, f"optimized smoke conversion accounting missing in {path}")
+        check(float(row["correctness"]["max_abs_error_vs_reference"]) <= 0.01 and row["correctness"]["optimized_has_nan"] is False, f"optimized smoke oracle check failed in {path}")
+        check(float(row["attention"]["per_decode_ms_median"]) > 0, f"optimized smoke timing missing in {path}")
+
+
+def verify_break_even(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "kv-memory-pressure-break-even-v1", f"wrong break-even schema in {path}")
+    provenance = data["provenance"]
+    check(provenance["swiftllm_upstream_commit"] == COMMIT, f"break-even SwiftLLM pin mismatch in {path}")
+    check(tuple(BREAK_EVEN_SOURCE_FILES) == tuple(data["provenance"].get("source_files", BREAK_EVEN_SOURCE_FILES)), f"break-even source manifest missing in {path}")
+    check(provenance["source_sha256"] == source_fingerprint(BREAK_EVEN_SOURCE_FILES), f"break-even source hash mismatch in {path}")
+    scope = data["scope"]
+    check(scope["scheduler_implemented"] is False and scope["scheduler_changed"] is False, f"break-even widened into scheduler work in {path}")
+    check(scope["compression_format"].startswith("INT8"), f"break-even format is not INT8 in {path}")
+    expected_cells = {(family, batch, context, fraction) for family in SHAPES_FOR_KV for batch in (1, 4, 8) for context in (128, 512, 2048) for fraction in (0.25, 0.5, 0.75)}
+    actual_cells = {(row["model_family"], int(row["batch"]), int(row["context_tokens"]), float(row["compressed_fraction"])) for row in data["cells"]}
+    check(actual_cells == expected_cells, f"break-even dimension grid incomplete in {path}")
+    for row in data["cells"]:
+        shape = SHAPES_FOR_KV[row["model_family"]]
+        fraction = float(row["compressed_fraction"])
+        pages = int(row["resident_pages"])
+        selected = round(pages * fraction)
+        check(int(row["selected_pages"]) == selected, f"selected page count mismatch in {path}")
+        conversion = row["conversion"]
+        check(conversion["batched_gpu_operation"] is True and int(conversion["pages"]) == selected, f"batched conversion evidence missing in {path}")
+        fp16_bytes = expected_kv_page_bytes(shape, "fp16")
+        int8_bytes = expected_kv_page_bytes(shape, "int8")
+        check(int(conversion["before_bytes"]) == selected * fp16_bytes, f"conversion input bytes mismatch in {path}")
+        check(int(conversion["after_bytes"]) == selected * int8_bytes, f"conversion output bytes mismatch in {path}")
+        check(int(conversion["reclaimed_bytes"]) == int(conversion["before_bytes"]) - int(conversion["after_bytes"]), f"conversion reclaim arithmetic mismatch in {path}")
+        check("gpu_memory_allocated_before_bytes" in conversion and "gpu_memory_allocated_after_bytes" in conversion, f"compression allocator observations missing in {path}")
+        if selected:
+            check(int(conversion["gpu_memory_allocated_delta_bytes"]) > 0, f"compression did not reclaim measured GPU allocation in {path}")
+        memory = row["memory"]
+        layers = int(shape["num_layers"]) if "num_layers" in shape else (16 if shape["head_dim"] == 64 else 32)
+        check(int(memory["reclaimed_bytes_all_layers"]) == int(conversion["reclaimed_bytes"]) * layers, f"all-layer reclaim scaling mismatch in {path}")
+        check(int(memory["capacity_bytes_avoided_or_reclaimed"]) == int(memory["reclaimed_bytes_all_layers"]), f"capacity accounting mismatch in {path}")
+        restoration = row["restoration"]
+        check(restoration["batched_gpu_operation"] is True and int(restoration["pages"]) == selected, f"restoration metadata malformed in {path}")
+        check("gpu_memory_allocated_before_bytes" in restoration and "gpu_memory_allocated_after_bytes" in restoration, f"restoration allocator observations missing in {path}")
+        offload = row["cpu_offload"]
+        check(offload["mechanism"] == "swiftllm_c.swap_blocks" and offload["allocator_is_preallocated"] is True, f"existing CPU/GPU swap evidence missing in {path}")
+        offload_pages = int(row["offload_selected_pages"])
+        check(int(offload["selected_pages"]) == offload_pages, f"offload selected-page record mismatch in {path}")
+        check(int(offload["bytes_reclaimed_as_reusable_capacity"]) == offload_pages * fp16_bytes * layers, f"offload capacity mismatch in {path}")
+        check(int(offload["bytes_reclaimed_as_reusable_capacity"]) >= int(memory["target_deficit_bytes"]), f"offload did not meet matched deficit in {path}")
+        check(int(offload["bytes_reclaimed_as_reusable_capacity"]) - int(memory["target_deficit_bytes"]) < fp16_bytes * layers, f"offload page-granularity overshoot is too large in {path}")
+        check("physical_hbm_delta_bytes" in offload, f"physical HBM offload observation missing in {path}")
+        actions = row["actions"]
+        check(set(actions) == {"queue", "cpu_offload", "int8_compression"}, f"action records incomplete in {path}")
+        check(float(actions["queue"]["transition_latency_ms"]) == 0.0 and float(actions["queue"]["quality_change"]) == 0.0, f"queue action record malformed in {path}")
+        check(int(actions["queue"]["capacity_bytes_avoided"]) == int(memory["capacity_bytes_avoided_or_reclaimed"]), f"queue capacity record mismatch in {path}")
+        check(int(actions["cpu_offload"]["capacity_bytes_reclaimed"]) == int(offload["bytes_reclaimed_as_reusable_capacity"]), f"offload action record mismatch in {path}")
+        check(float(actions["int8_compression"]["transition_latency_ms"]) == float(conversion["elapsed_ms"]), f"compression transition record mismatch in {path}")
+        check(int(actions["int8_compression"]["capacity_bytes_reclaimed"]) == int(memory["reclaimed_bytes_all_layers"]), f"compression capacity record mismatch in {path}")
+        check(float(actions["int8_compression"]["persistent_per_token_ms"]) > 0, f"compression persistent timing missing in {path}")
+        check(row["quality_delta"]["int8_compression"] is not None and 0.0 <= float(row["quality_delta"]["top1_agreement"]) <= 1.0, f"compression quality probe missing in {path}")
+        check(float(row["quality_delta"]["queue"]) == 0.0 and float(row["quality_delta"]["cpu_offload"]) == 0.0, f"lossless action quality records missing in {path}")
+        check(float(row["oracle"]["max_abs_error_vs_optimized"]) <= 0.01, f"optimized attention oracle mismatch in {path}")
+        baseline = row["baseline_dense_fp16"]
+        fast = row["optimized_mixed_int8"]
+        check(float(baseline["per_token_wall_ms"]) > 0 and float(fast["per_token_wall_ms"]) > 0, f"attention timing missing in {path}")
+        costs = {int(r["horizon_decode_iterations"]): r for r in row["break_even"]}
+        check(set(costs) == set((1, 4, 8, 16, 32, 64)), f"horizon grid incomplete in {path}")
+        for horizon, costs_row in costs.items():
+            expected_queue = horizon * float(baseline["per_token_wall_ms"])
+            expected_offload = float(offload["transition_wall_ms"])
+            expected_compression = float(conversion["elapsed_ms"]) + float(restoration["elapsed_ms"]) + horizon * (float(fast["per_token_wall_ms"]) - float(baseline["per_token_wall_ms"]))
+            close(float(costs_row["queue_cost_ms"]), expected_queue, f"{path}/queue/{horizon}")
+            close(float(costs_row["offload_cost_ms"]), expected_offload, f"{path}/offload/{horizon}")
+            close(float(costs_row["compression_cost_ms"]), expected_compression, f"{path}/compression/{horizon}")
+            check(costs_row["winner"] in {"queue", "cpu_offload", "int8_compression"}, f"invalid break-even winner in {path}")
 
 
 def main() -> None:
@@ -580,6 +704,10 @@ def main() -> None:
     verify_kv_mechanism(ROOT / "results/sensitivity/kv_precision_mechanism.json")
     verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_1b.json")
     verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_8b.json")
+    verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_batched_1b.json")
+    verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_batched_8b.json")
+    verify_optimized_smoke(ROOT / "results/sensitivity/kv_precision_optimized_smoke_final.json")
+    verify_break_even(ROOT / "results/sensitivity/kv_break_even_study.json")
     invocations = json.loads((ROOT / "results/baseline/invocations.json").read_text())["commands"]
     invocation_names = {row["name"] for row in invocations}
     check("interaction_aware_structured_llama32_1b" in invocation_names, "1B interaction-aware invocation is missing")
@@ -608,6 +736,10 @@ def main() -> None:
         "results/sensitivity/kv_precision_quality_1b.log",
         "results/sensitivity/kv_precision_quality_8b.json",
         "results/sensitivity/kv_precision_quality_8b.log",
+        "results/sensitivity/kv_precision_quality_batched_1b.json",
+        "results/sensitivity/kv_precision_quality_batched_8b.json",
+        "results/sensitivity/kv_precision_optimized_smoke_final.json",
+        "results/sensitivity/kv_break_even_study.json",
     ):
         check((ROOT / required).exists(), f"missing required artifact: {required}")
     print("artifact verification passed: historical structured gate plus live-KV page storage, conversion, mixed attention, overlap, and quality traces verified")

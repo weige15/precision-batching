@@ -24,12 +24,13 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - `scripts/qkv_sensitivity.py`: reproducible `{4,8,16}^3` Q/K/V projection sensitivity matrix, prefill/decode paired metrics, layer sweep, and offline oracle comparison.
 - `scripts/structured_precision_experiment.py`: W8-centered Q/K/V/O/FFN marginals, dispersed-shard calibration, actual combined-profile beam/coordinate search, exhaustive 1B `3^5 = 243` projection assignments, held-out paired evaluation, and exact storage ledgers.
 - `scripts/swiftllm_precision_smoke.py`: verifies metadata propagation without changing default behavior.
-- `scripts/kv_precision_experiment.py`: measures live FP16→INT8/INT4 page demotion, exact storage, mixed attention, CUDA overlap, and paired checkpoint quality.
+- `scripts/kv_precision_experiment.py`: measures live FP16→INT8/INT4 page demotion, exact storage, mixed attention, CUDA overlap, and paired checkpoint quality; INT8 transitions use batched conversion and the optimized segmented path.
+- `scripts/kv_break_even_experiment.py`: matched RTX 3090 queue/offload/INT8 action-cost study across context, batch, deficit, and pressure horizon.
 - `tests/test_precision.py` and `tests/test_structured_precision.py`: metadata, eager-proxy, scheduler-semantics, and storage-accounting checks.
 - `references/swiftllm-kv-page.diff`: source diff for the live-page phase.
 - `results/`: raw baseline logs, environment snapshots, structured-precision results, and live-KV conversion/attention/quality evidence artifacts. Model weights are not checked in.
 
-The structured-weight proxy returns FP16 after quantize/dequantize and is not evidence of low-bit acceleration. The current KV phase uses actual INT8/INT4 page payloads but a transparent PyTorch mixed-attention reference. It found real reclamation and near-lossless old-page INT8 quality in small probes, but no useful mixed-attention fast path; the scoped decision is no-go for opening a scheduler. Native mixed kernels, routers, schedulers, and swapping remain deferred.
+The structured-weight proxy returns FP16 after quantize/dequantize and is not evidence of low-bit acceleration. The earlier KV report used a transparent PyTorch mixed-attention reference. The follow-up adds a format-specialized INT8 Triton path and batched conversion, then finds INT8 dominated by queueing or existing CPU offload in the matched RTX 3090 map. The scoped decision is no-go for opening a scheduler; INT8 remains archived as enabling evidence, not a runtime action. Routers and policy work remain deferred.
 
 ## Quick check
 

@@ -46,6 +46,7 @@ TARGETS = ("int8", "int4")
 SOURCE_FILES = (
     "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
     "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py",
     "vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py",
     "vendor/swiftLLM/swiftllm/worker/layers/post_layer.py",
     "vendor/swiftLLM/swiftllm/worker/model.py",
@@ -226,12 +227,99 @@ def conversion_trial(shape: dict[str, int], batch: int, context: int, target: st
     }
 
 
+def optimized_attention_time(
+    cache: PagedKVCache,
+    shape: dict[str, int],
+    batch: int,
+    context: int,
+    pages_per_seq: int,
+    device: torch.device,
+    iterations: int = 10,
+    repetitions: int = 3,
+) -> dict[str, object]:
+    model, engine, block_table, seq_ids, lengths, q, out = attention_args(shape, batch, context, pages_per_seq, device)
+    # Compile and populate the packed arenas before recording steady-state
+    # timings.  The first call is reported separately as warm-up overhead.
+    cache.optimized_attention(q, block_table, seq_ids, lengths, model, engine, 0, out)
+    sync(device)
+    replicates = []
+    for _ in range(repetitions):
+        start = torch.cuda.Event(enable_timing=True)
+        stop = torch.cuda.Event(enable_timing=True)
+        start.record()
+        for _ in range(iterations):
+            cache.optimized_attention(q, block_table, seq_ids, lengths, model, engine, 0, out)
+        stop.record()
+        stop.synchronize()
+        replicates.append(start.elapsed_time(stop))
+    return {
+        "iterations": iterations,
+        "repetitions": repetitions,
+        "replicate_elapsed_ms": replicates,
+        "elapsed_ms_median": statistics.median(replicates),
+        "per_decode_ms_median": statistics.median(replicates) / iterations,
+        "output_checksum": float(out.float().sum().item()),
+    }
+
+
+def optimized_smoke(shape: dict[str, int], device: torch.device, seed: int) -> dict[str, object]:
+    batch, context = 4, 256
+    cache, pages_per_seq, total_pages = make_cache(shape, batch, context, device)
+    populate(cache, batch, pages_per_seq, seed)
+    keys = [(block_id, 0) for block_id in selected_blocks(batch, pages_per_seq, 0.5)]
+    batch_result = cache.demote_pages_batch(keys, "int8")
+    model, engine, block_table, seq_ids, lengths, q, oracle_out = attention_args(shape, batch, context, pages_per_seq, device)
+    optimized_out = torch.empty_like(oracle_out)
+    page_attention_for_layer(q, cache, block_table, seq_ids, lengths, model, engine, 0, oracle_out)
+    sync(device)
+    kernel = optimized_attention_time(cache, shape, batch, context, pages_per_seq, device)
+    cache.optimized_attention(q, block_table, seq_ids, lengths, model, engine, 0, optimized_out)
+    sync(device)
+    return {
+        "model_shape": shape,
+        "batch": batch,
+        "context_tokens": context,
+        "resident_pages": total_pages,
+        "converted_pages": len(keys),
+        "batch_conversion": {
+            "target_format": batch_result.target_format,
+            "pages": len(batch_result.page_keys),
+            "before_bytes": batch_result.before_bytes,
+            "after_bytes": batch_result.after_bytes,
+            "reclaimed_bytes": batch_result.reclaimed_bytes,
+            "elapsed_ms": batch_result.elapsed_ms,
+            "latency_ms_per_page": batch_result.elapsed_ms / len(keys),
+            "temporary_bytes": batch_result.temporary_bytes,
+            "has_unreclaimed_shadow": cache.has_unreclaimed_shadow(),
+            "per_page": [dataclasses.asdict(item) for item in batch_result.per_page],
+        },
+        "attention": kernel,
+        "correctness": {
+            "max_abs_error_vs_reference": float((oracle_out - optimized_out).abs().max().item()),
+            "mean_abs_error_vs_reference": float((oracle_out - optimized_out).abs().mean().item()),
+            "optimized_has_nan": bool(torch.isnan(optimized_out).any().item()),
+        },
+    }
+
+
 def mixed_attention_trial(shape: dict[str, int], batch: int, context: int, target: str, fraction: float, device: torch.device, seed: int, iterations: int, repetitions: int) -> dict[str, object]:
     cache, pages_per_seq, total_pages = make_cache(shape, batch, context, device)
     populate(cache, batch, pages_per_seq, seed)
     keys = selected_blocks(batch, pages_per_seq, fraction)
-    for block_id in keys:
-        cache.demote_page(block_id, 0, target)
+    batch_conversion = None
+    if target == "int8" and keys:
+        batch_result = cache.demote_pages_batch([(block_id, 0) for block_id in keys], "int8")
+        batch_conversion = {
+            "pages": len(batch_result.page_keys),
+            "elapsed_ms": batch_result.elapsed_ms,
+            "before_bytes": batch_result.before_bytes,
+            "after_bytes": batch_result.after_bytes,
+            "reclaimed_bytes": batch_result.reclaimed_bytes,
+            "has_unreclaimed_shadow": cache.has_unreclaimed_shadow(),
+        }
+    else:
+        for block_id in keys:
+            cache.demote_page(block_id, 0, target)
     result = attention_time(cache, shape, batch, context, pages_per_seq, device, iterations, repetitions)
     return {
         "kind": "mixed_dynamic",
@@ -241,6 +329,7 @@ def mixed_attention_trial(shape: dict[str, int], batch: int, context: int, targe
         "context_tokens": context,
         "resident_pages": total_pages,
         "storage": cache.storage_summary(),
+        "batch_conversion": batch_conversion,
         "attention": result,
     }
 
@@ -491,17 +580,48 @@ def quality_variant(
         first_output, prefill_ms = timed_forward(model, [prompt_ids], [0], [], device)
         first = first_output[0].float()
         demoted = []
+        conversion = None
         if variant.get("demote"):
             keys = dynamic_page_keys(model, float(variant["fraction"]), str(variant["recency"]), str(variant["layer_range"]))
-            demoted = [
-                {
-                    "block_id": block_id,
-                    "layer_id": layer_id,
-                    "components": list(variant["components"]),
-                    "result": dataclasses.asdict(model.page_kv_cache.demote_page(block_id, layer_id, str(variant["target"]), variant["components"])),
+            if str(variant["target"]) == "int8" and tuple(variant["components"]) == ("k", "v"):
+                batch_result = model.page_kv_cache.demote_pages_batch(keys, "int8", variant["components"])
+                demoted = [
+                    {
+                        "block_id": item.block_id,
+                        "layer_id": item.layer_id,
+                        "components": list(item.components),
+                        "result": dataclasses.asdict(item),
+                    }
+                    for item in batch_result.per_page
+                ]
+                conversion = {
+                    "batched": True,
+                    "pages": len(batch_result.page_keys),
+                    "elapsed_ms": batch_result.elapsed_ms,
+                    "before_bytes": batch_result.before_bytes,
+                    "after_bytes": batch_result.after_bytes,
+                    "reclaimed_bytes": batch_result.reclaimed_bytes,
+                    "temporary_bytes": batch_result.temporary_bytes,
                 }
-                for block_id, layer_id in keys
-            ]
+            else:
+                demoted = [
+                    {
+                        "block_id": block_id,
+                        "layer_id": layer_id,
+                        "components": list(variant["components"]),
+                        "result": dataclasses.asdict(model.page_kv_cache.demote_page(block_id, layer_id, str(variant["target"]), variant["components"])),
+                    }
+                    for block_id, layer_id in keys
+                ]
+                conversion = {
+                    "batched": False,
+                    "pages": len(demoted),
+                    "elapsed_ms": sum(item["result"]["elapsed_ms"] for item in demoted),
+                    "before_bytes": sum(item["result"]["before_bytes"] for item in demoted),
+                    "after_bytes": sum(item["result"]["after_bytes"] for item in demoted),
+                    "reclaimed_bytes": sum(item["result"]["before_bytes"] - item["result"]["after_bytes"] for item in demoted),
+                    "temporary_bytes": max((item["result"]["temporary_bytes"] for item in demoted), default=0),
+                }
             sync(device)
         comp_logits = [first.cpu()]
         decode_ms = []
@@ -565,6 +685,7 @@ def quality_variant(
         "components": list(variant.get("components", ("k", "v"))),
         "demoted_pages": len(demoted),
         "demotions": demoted,
+        "conversion": conversion,
         "storage": summary,
         "latency": {
             "prefill_ms": prefill_ms,
@@ -677,9 +798,28 @@ def main() -> None:
     parser.add_argument("--quality-model-path", action="append", default=[])
     parser.add_argument("--quality-context-tokens", type=int, default=256)
     parser.add_argument("--quality-generation-tokens", type=int, default=16)
+    parser.add_argument("--optimized-smoke", action="store_true", help="Run the small Triton INT8 segmented-path smoke instead of the full grid")
     args = parser.parse_args()
 
-    output = run_microbench(args)
+    if args.optimized_smoke:
+        device = device_arg(args.device)
+        output = {
+            "schema": "live-kv-optimized-int8-v1",
+            "provenance": {
+                "branch": subprocess.check_output(["git", "-C", str(ROOT), "branch", "--show-current"], text=True).strip(),
+                "git_head": subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip(),
+                "swiftllm_upstream_commit": (ROOT / "vendor/swiftLLM/UPSTREAM_COMMIT").read_text().strip(),
+                "source_files": list(SOURCE_FILES),
+                "source_sha256": source_fingerprint(),
+                "device": str(device),
+                "seed": args.seed,
+                "oracle": "page_attention_for_layer",
+                "kernel": "segmented_paged_attention",
+            },
+            "smoke": [optimized_smoke(SHAPES[family], device, args.seed + index) for index, family in enumerate(("llama32_1b", "llama31_8b"))],
+        }
+    else:
+        output = run_microbench(args)
     if args.run_quality:
         output.update(run_quality(args))
     output["invocation"] = {"argv": sys.argv, "cwd": os.getcwd()}
@@ -689,9 +829,10 @@ def main() -> None:
         handle.write("\n")
     print(json.dumps({
         "output": args.output,
-        "conversion_trials": len(output["conversion"]),
+        "conversion_trials": len(output.get("conversion", [])),
         "attention_families": len(output.get("families", [])),
         "quality_runs": len(output.get("quality", [])),
+        "optimized_smoke_runs": len(output.get("smoke", [])),
     }))
 
 

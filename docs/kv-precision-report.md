@@ -1,21 +1,22 @@
 # Live KV-page precision feasibility report
 
-## Decision
+## Decision (historical pre-optimized path)
 
-**No-go for using live page precision as a serving control in the current
-SwiftLLM path.** The conversion mechanism is feasible: it changes already
-resident pages, really releases payload storage, supports mixed formats, and
-INT8 demotion of old pages is nearly lossless in the paired checkpoint tests.
-The blocking result is mixed-format attention. The transparent page attention
-implementation is about 2.1--3.9x slower for INT8 and 3.3--6.9x slower for
-INT4 at 50% compressed pages across the measured grid (3.8--6.9x at the
-batch-8/context-1024 stress point), and the CUDA overlap test did not hide
-conversion work. A scheduler must not be opened on this evidence.
+**No-go for the original live-page reference path.** The conversion mechanism
+is feasible: it changes already resident pages, really releases payload
+storage, supports mixed formats, and INT8 demotion of old pages is nearly
+lossless in the paired checkpoint tests. The original transparent page
+attention implementation was about 2.1--3.9x slower for INT8 and 3.3--6.9x
+slower for INT4 at 50% compression across its measured grid. This report was
+written before the optimized INT8 follow-up.
 
-This is a scoped mechanism decision, not a claim that a fused INT8/INT4 KV
-kernel is impossible. The current mixed path is intentionally a correctness
-reference, not a production kernel. A future native mixed-format kernel would
-need a fresh end-to-end benchmark before this decision can change.
+The final optimized-path and three-action decision is now in
+[`kv-break-even-report.md`](kv-break-even-report.md), with its audit in
+[`kv-break-even-completion-audit.md`](kv-break-even-completion-audit.md).
+That follow-up adds a format-specialized INT8 Triton path and batched
+conversion, then still rejects INT8 as a runtime action because queueing or
+lossless CPU offload is cheaper in every matched horizon row. The earlier
+no-go is not evidence that efficient quantized attention is impossible.
 
 The prior structured **weight** precision result remains closed historical
 evidence. No Q/K/V/O/FFN weight allocation, weight swapping, scheduler policy,
@@ -23,19 +24,23 @@ router, or automatic precision choice was reopened here.
 
 ## What was implemented
 
-`vendor/swiftLLM/swiftllm/worker/kv_cache.py` adds an explicit page store:
+`vendor/swiftLLM/swiftllm/worker/kv_cache.py` adds an explicit page store; the
+later follow-up adds `segmented_paged_attn.py` for optimized INT8/FP16 segments
+and batched conversion APIs:
 
 - page shape `[block_size, num_kv_heads, head_dim]`, one logical
   `(physical_block, layer)` record;
 - independent K and V metadata at page granularity;
 - FP16, INT8, and packed INT4 payloads;
-- synchronous live demotion and event-ordered asynchronous demotion;
+- synchronous live demotion, batched INT8 demotion/restoration, and event-ordered asynchronous demotion;
 - exact tensor-byte accounting, pending-source accounting, and no-shadow checks;
-- a layer-aware mixed-format decode-attention reference.
+- a layer-aware mixed-format decode-attention reference plus a separate optimized segmented INT8/FP16 kernel path.
 
-`--kv-page-format dense_fp16` is the unchanged upstream allocator. `fp16`,
-`int8`, and `int4` select the research page store. Page-store mode explicitly
-does not pretend to support SwiftLLM's existing CPU/GPU FP16 swap extension.
+`--kv-page-format dense_fp16` is the only runtime CLI cache mode and is the
+unchanged upstream allocator. The offline research harness constructs `fp16`,
+`int8`, and `int4` page stores directly for the preserved historical and
+optimized evidence. Page-store mode explicitly does not pretend to support
+SwiftLLM's existing CPU/GPU FP16 swap extension.
 
 The quantizer is a standard symmetric per-group max-absolute rule with
 FP16 scales and group size 128; it is not presented as a contribution. K-only
@@ -250,9 +255,10 @@ K/V state payloads and scales; no weight precision is included.
 
 ### Blocked questions
 
-- No packed, format-aware Triton/CUDA attention kernel was implemented. The
-  current reference is therefore insufficient evidence to approve a scheduler
-  even though it is sufficient to reject the current fallback path.
+- This historical phase did not implement a packed, format-aware
+  Triton/CUDA attention kernel. The follow-up now provides the smallest
+  segmented INT8/FP16 enabling path; its measured no-go is reported separately
+  and is insufficient to approve a scheduler.
 - No arena allocator was built; one-tensor-per-page overhead and fragmentation
   under a large continuous workload are not characterized.
 - Appending into an already compressed active page decodes and re-encodes the

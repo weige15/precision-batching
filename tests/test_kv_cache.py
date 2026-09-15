@@ -1,8 +1,10 @@
+import argparse
 import types
 import unittest
 
 import torch
 
+from swiftllm.engine_config import EngineConfig
 from swiftllm.worker.kv_cache import PagedKVCache, page_attention_for_layer
 
 
@@ -98,6 +100,44 @@ class KVPageTests(unittest.TestCase):
         got_k, got_v = cache.read(0, 0)
         self.assertTrue(torch.allclose(got_k[2], replacement_k[0], atol=0.02, rtol=0))
         self.assertTrue(torch.allclose(got_v[2], replacement_v[0], atol=0.02, rtol=0))
+        self.assertFalse(cache.has_unreclaimed_shadow())
+
+    def test_batched_int8_conversion_reclaims_once_and_preserves_metadata(self):
+        cache = self.make_cache()
+        for block_id in range(3):
+            k, v = self.page_values(offset=block_id)
+            cache.write(block_id, 0, k, v)
+        result = cache.demote_pages_batch([(0, 0), (1, 0), (2, 0)], "int8")
+        self.assertEqual(result.target_format, "int8")
+        self.assertEqual(len(result.per_page), 3)
+        self.assertEqual(result.before_bytes - result.after_bytes, result.reclaimed_bytes)
+        self.assertEqual(result.reclaimed_bytes, sum(row.before_bytes - row.after_bytes for row in result.per_page))
+        self.assertEqual(cache.metadata_counts(), {"k": {"int8": 3}, "v": {"int8": 3}})
+        self.assertFalse(cache.has_unreclaimed_shadow())
+
+    def test_batched_conversion_rejects_non_int8_target(self):
+        cache = self.make_cache()
+        k, v = self.page_values()
+        cache.write(0, 0, k, v)
+        with self.assertRaises(ValueError):
+            cache.demote_pages_batch([(0, 0)], "int4")
+
+    def test_runtime_cli_exposes_only_lossless_dense_cache_mode(self):
+        parser = argparse.ArgumentParser()
+        EngineConfig.add_cli_args(parser)
+        action = next(action for action in parser._actions if action.dest == "kv_page_format")
+        self.assertEqual(action.choices, ("dense_fp16",))
+
+    def test_batched_promotion_restores_fp16_storage(self):
+        cache = self.make_cache()
+        for block_id in range(2):
+            k, v = self.page_values(offset=block_id)
+            cache.write(block_id, 0, k, v)
+        cache.demote_pages_batch([(0, 0), (1, 0)], "int8")
+        result = cache.promote_pages_batch([(0, 0), (1, 0)], "fp16")
+        self.assertEqual(result.target_format, "fp16")
+        self.assertEqual(cache.metadata_counts(), {"k": {"fp16": 2}, "v": {"fp16": 2}})
+        self.assertEqual(cache.logical_bytes(), 2 * 32 * 2 * 2)
         self.assertFalse(cache.has_unreclaimed_shadow())
 
     def test_invalid_async_components_are_rejected(self):

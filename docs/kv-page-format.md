@@ -3,9 +3,10 @@
 ## Scope
 
 The SwiftLLM baseline keeps its original dense FP16 KV cache and Triton
-PagedAttention path. The optional research path is enabled with
-`--kv-page-format fp16|int8|int4`; the default `dense_fp16` is unchanged.
-There is no scheduler decision, priority policy, CPU/GPU residual hierarchy,
+PagedAttention path. The runtime CLI exposes only `dense_fp16`; the page
+formats remain directly constructible by the offline research harness for
+reproducibility, but are not runtime actions after the break-even no-go. There
+is no scheduler decision, priority policy, CPU/GPU residual hierarchy,
 weight swapping, or query router in this phase.
 
 A logical page is one `(physical_block_id, layer_id)` pair. Its K and V
@@ -51,14 +52,19 @@ transient workspace and is not counted as reclaimed capacity.
 ## Mixed attention
 
 The optional page-store path writes new pages in the configured initial format,
-preserves a page's current K/V formats on append, and reads each page through
-a layer-aware FP16 dequantization reference before ordinary PyTorch attention.
-A decode batch can therefore contain FP16, INT8, and INT4 pages at once. The
-reference is deliberately transparent rather than a production fused kernel;
-its timings are an upper-bound/feasibility result for this implementation,
-not evidence of low-bit acceleration.
+preserves a page's current K/V formats on append, and retains the transparent
+`page_attention_for_layer` FP16-dequantization implementation as a correctness
+oracle. The follow-up also provides
+`worker/kernels/segmented_paged_attn.py`: format-specialized FP16 and INT8
+segments read native payloads, dequantize INT8 in registers, and reduce their
+online-softmax partials without materializing the mixed cache to FP16. The
+transformer uses that path for matching FP16/INT8 pages and falls back to the
+oracle for INT4 or unsupported K/V combinations.
 
-`LlamaModel.demote_kv_pages()` is the only control-plane hook needed to convert
-already-live pages. Page-store mode deliberately rejects existing SwiftLLM
-CPU/GPU swapping instead of pretending that compressed pages can be swapped by
-the FP16 extension.
+`PagedKVCache.demote_pages_batch()` and `promote_pages_batch()` measure the
+conversion/reversal data path as batched GPU operations. The matched
+queue/offload/compression outcome is in
+[`kv-break-even-report.md`](kv-break-even-report.md). Page-store mode still
+deliberately rejects existing SwiftLLM CPU/GPU swapping rather than pretending
+that compressed pages can be swapped by the FP16 extension; the lossless swap
+comparison is measured separately with the unchanged dense mode.
