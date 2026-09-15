@@ -1,0 +1,86 @@
+{
+  "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+  "hostname": "basic-2",
+  "cwd": "/nfs/home/s314511048/precision-batching",
+  "packages": {
+    "torch": "2.4.0",
+    "transformers": "4.51.3",
+    "safetensors": "0.8.0",
+    "triton": "3.0.0",
+    "vllm-flash-attn": "2.6.2",
+    "ray": "2.58.0",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.53.0"
+  },
+  "torch_cuda_visible_devices": null,
+  "cuda_smi": "0, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n1, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n2, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n3, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n4, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n5, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6\n6, NVIDIA GeForce RTX 3090, 24576 MiB, 580.159.03, 8.6",
+  "torch_details": "{'version': '2.4.0+cu121', 'cuda': '12.1', 'available': True, 'count': 7}\n['NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090', 'NVIDIA GeForce RTX 3090']",
+  "swiftllm_commit": "682cf9a28f97f7490409981a2f181528f377eb5d",
+  "swiftllm_research_diff_sha256": "5e6bf001013324594f8d7554d5dee0bbdf380d17c5c4e99a5c6690179b5f47f0",
+  "swiftllm_status": "research fork; clean pinned source is vendor/swiftLLM-upstream; see references/swiftllm-research.diff",
+  "model": {
+    "path": "/nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 877,
+        "sha256": "2febf68cea25bf4611be02b7536f2488a5ba523bb1134986e3610152abe74fdb"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 2471645608,
+        "sha256": "1ff795ff6a07e6a68085d206fb84417da2f083f68391c2843cd2b8ac6df8538f"
+      },
+      {
+        "name": "tokenizer.json",
+        "bytes": 9085657,
+        "sha256": "79e3e522635f3171300913bb421464a87de6222182a0570b9b2ccba2a964b2b4"
+      },
+      {
+        "name": "tokenizer_config.json",
+        "bytes": 54528,
+        "sha256": "9823dcfdc1121869029da45192238e85cf44f0b232a6d9dc20e4fe6f4242a14e"
+      }
+    ],
+    "config": {
+      "architectures": [
+        "LlamaForCausalLM"
+      ],
+      "attention_bias": false,
+      "attention_dropout": 0.0,
+      "bos_token_id": 128000,
+      "eos_token_id": [
+        128001,
+        128008,
+        128009
+      ],
+      "head_dim": 64,
+      "hidden_act": "silu",
+      "hidden_size": 2048,
+      "initializer_range": 0.02,
+      "intermediate_size": 8192,
+      "max_position_embeddings": 131072,
+      "mlp_bias": false,
+      "model_type": "llama",
+      "num_attention_heads": 32,
+      "num_hidden_layers": 16,
+      "num_key_value_heads": 8,
+      "pretraining_tp": 1,
+      "rms_norm_eps": 1e-05,
+      "rope_scaling": {
+        "factor": 32.0,
+        "high_freq_factor": 4.0,
+        "low_freq_factor": 1.0,
+        "original_max_position_embeddings": 8192,
+        "rope_type": "llama3"
+      },
+      "rope_theta": 500000.0,
+      "tie_word_embeddings": true,
+      "torch_dtype": "bfloat16",
+      "transformers_version": "4.45.0.dev0",
+      "use_cache": true,
+      "vocab_size": 128256
+    }
+  }
+}

@@ -16,6 +16,7 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - [KV completion audit](docs/kv-completion-audit.md) — requirement-by-requirement audit for this phase.
 - [Public low-bit KV study](docs/public-kv-study.md) — KIVI/KVQuant/Kitty/QAQ/Minima-KV provenance, local reproductions, and integration recommendation.
 - [Public KV completion audit](docs/public-kv-completion-audit.md) — objective-to-artifact checklist and verification status.
+- [KV measurement audit v2](docs/kv-measurement-audit-v2.md) — corrected K/V accounting, native page/release evidence, checkpoint smoke, claim audit, and blockers.
 
 ## What is included
 
@@ -25,12 +26,13 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - `scripts/structured_precision_experiment.py`: W8-centered Q/K/V/O/FFN marginals, dispersed-shard calibration, actual combined-profile beam/coordinate search, exhaustive 1B `3^5 = 243` projection assignments, held-out paired evaluation, and exact storage ledgers.
 - `scripts/swiftllm_precision_smoke.py`: verifies metadata propagation without changing default behavior.
 - `scripts/kv_precision_experiment.py`: measures live FP16→INT8/INT4 page demotion, exact storage, mixed attention, CUDA overlap, and paired checkpoint quality; INT8 transitions use batched conversion and the optimized segmented path.
-- `scripts/kv_break_even_experiment.py`: matched RTX 3090 queue/offload/INT8 action-cost study across context, batch, deficit, and pressure horizon.
+- `scripts/kv_break_even_experiment.py`: historical matched RTX 3090 queue/offload/INT8 study; its action ranking is audited and superseded by `docs/kv-measurement-audit-v2.md`.
+- `scripts/kv_measurement_v2.py`: corrected native page/layout/ownership/allocator/release smoke with all-layer conversion and explicit non-identity GQA mapping.
 - `tests/test_precision.py` and `tests/test_structured_precision.py`: metadata, eager-proxy, scheduler-semantics, and storage-accounting checks.
 - `references/swiftllm-kv-page.diff`: source diff for the live-page phase.
 - `results/`: raw baseline logs, environment snapshots, structured-precision results, and live-KV conversion/attention/quality evidence artifacts. Model weights are not checked in.
 
-The structured-weight proxy returns FP16 after quantize/dequantize and is not evidence of low-bit acceleration. The earlier KV report used a transparent PyTorch mixed-attention reference. The follow-up adds a format-specialized INT8 Triton path and batched conversion, then finds INT8 dominated by queueing or existing CPU offload in the matched RTX 3090 map. The scoped decision is no-go for opening a scheduler; INT8 remains archived as enabling evidence, not a runtime action. Routers and policy work remain deferred.
+The structured-weight proxy returns FP16 after quantize/dequantize and is not evidence of low-bit acceleration. The earlier KV and break-even reports are retained as historical evidence; `docs/kv-measurement-audit-v2.md` corrects their scoped measurement defects and withdraws the old action ranking. Routers and policy work remain deferred.
 
 ## Quick check
 

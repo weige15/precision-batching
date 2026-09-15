@@ -52,6 +52,14 @@ BREAK_EVEN_SOURCE_FILES = (
     "vendor/swiftLLM/swiftllm/worker/model.py",
     "vendor/swiftLLM/csrc/src/block_swapping.cpp",
 )
+KV_MEASUREMENT_V2_SOURCE_FILES = (
+    "scripts/kv_measurement_v2.py",
+    "vendor/swiftLLM/swiftllm/worker/kv_cache.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/paged_attn.py",
+    "vendor/swiftLLM/swiftllm/worker/kernels/kvcache_mgmt.py",
+)
+PUBLIC_KV_V2_SOURCE_FILES = ("scripts/reproduce_kivi.py", "vendor/public/KIVI")
 
 
 def check(condition: bool, message: str) -> None:
@@ -615,6 +623,181 @@ def verify_optimized_smoke(path: Path) -> None:
         check(float(row["attention"]["per_decode_ms_median"]) > 0, f"optimized smoke timing missing in {path}")
 
 
+def source_fingerprint_current(files: tuple[str, ...]) -> str:
+    digest = hashlib.sha256()
+    for relative in files:
+        digest.update(relative.encode("utf-8"))
+        if relative.startswith("vendor/public/"):
+            digest.update(subprocess.check_output(["git", "-C", str(ROOT / relative), "rev-parse", "HEAD"], text=True).encode())
+        else:
+            digest.update((ROOT / relative).read_bytes())
+    return digest.hexdigest()
+
+
+def expected_v2_page_bytes(shape: dict[str, int], page_format: str, group_size: int = 128) -> int:
+    numel = 16 * int(shape["num_kv_heads"]) * int(shape["head_dim"])
+    if page_format == "fp16":
+        return numel * 4
+    if page_format == "int8":
+        return numel * 2 + math.ceil(numel / group_size) * 4
+    raise AssertionError(f"unknown v2 page format {page_format}")
+
+
+def verify_kv_measurement_v2(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "swiftllm-kv-measurement-v2", f"wrong v2 SwiftLLM schema in {path}")
+    provenance = data["provenance"]
+    current_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    check(provenance["reviewed_remote_commit"] == "8c0a0bfcc6bf87461c104603718ed2dc507df390", f"reviewed commit missing in {path}")
+    check(provenance["local_commit"] == current_head, f"v2 artifact was not run from current local commit in {path}")
+    check(tuple(provenance["source_files"]) == KV_MEASUREMENT_V2_SOURCE_FILES, f"v2 SwiftLLM source manifest mismatch in {path}")
+    check(provenance["source_sha256"] == source_fingerprint_current(KV_MEASUREMENT_V2_SOURCE_FILES), f"v2 SwiftLLM source hash mismatch in {path}")
+    check(data["hardware"]["name"] == "NVIDIA GeForce RTX 3090", f"v2 device is not RTX 3090 in {path}")
+    check(data["scope"]["scheduler_implemented"] is False and data["scope"]["scheduler_changed"] is False, f"v2 scope widened into scheduler work in {path}")
+    check(data["scope"]["quality_scoring_in_timing"] is False, f"v2 timing declares quality contamination in {path}")
+    check({row["model_family"] for row in data["cases"]} == {"llama32_1b", "llama31_8b"}, f"v2 shape coverage incomplete in {path}")
+    for case in data["cases"]:
+        shape = case["shape"]
+        layers = int(shape["num_layers"])
+        page_fp16 = expected_v2_page_bytes(shape, "fp16")
+        page_int8 = expected_v2_page_bytes(shape, "int8")
+        check(case["selection_is_request_local"] is True, f"v2 selection used global physical IDs in {path}")
+        check(case["selected_old_physical_blocks"] == case["expected_request_local_old_blocks"], f"v2 selection provenance mismatch in {path}")
+        prefill = case["prefill"]["storage"]
+        verify_v2_storage_ledger(prefill, f"{path}/{case['model_family']}/prefill")
+        check(int(prefill["logical_payload_bytes"]) == 4 * layers * page_fp16, f"v2 prefill payload arithmetic mismatch in {path}")
+        check(int(prefill["unique_live_storage_bytes"]) >= int(prefill["logical_payload_bytes"]), f"v2 prefill unique storage undercounts payload in {path}")
+        conversion = case["conversion"]
+        selected = len(case["selected_old_physical_blocks"])
+        check(int(conversion["pages"]) == selected * layers, f"v2 conversion is not all-layer in {path}")
+        check(int(conversion["before_bytes"]) == selected * layers * page_fp16, f"v2 conversion input mismatch in {path}")
+        check(int(conversion["after_bytes"]) == selected * layers * page_int8, f"v2 conversion output mismatch in {path}")
+        check(int(conversion["reclaimed_bytes"]) == int(conversion["before_bytes"]) - int(conversion["after_bytes"]), f"v2 conversion reclaim mismatch in {path}")
+        check(float(conversion["elapsed_ms"]) >= 0.0, f"v2 conversion timing missing in {path}")
+        append = case["append_trace"]
+        check([int(row["token_position"]) for row in append] == [32, 33, 34], f"v2 append/page-boundary trace missing in {path}")
+        check(all(int(row["storage"]["logical_payload_bytes"]) > 0 for row in append), f"v2 append storage trace missing in {path}")
+        layout = case["fp16_layout_correctness"]
+        check(layout["non_identity_block_table"] is True and layout["matched_logical_fp16_inputs"] is True, f"v2 layout control missing in {path}")
+        check(float(layout["max_abs_error_dense_vs_page_oracle"]) <= 0.01, f"v2 dense/page correctness failed in {path}")
+        optimized = case["optimized_attention"]
+        storage = optimized["storage"]
+        verify_v2_storage_ledger(storage, f"{path}/{case['model_family']}/optimized")
+        check(optimized["packed_copies_included_in_ledger"] is True, f"v2 packed arena was omitted in {path}")
+        check(int(storage["packed_arena_and_map_bytes"]) > 0, f"v2 packed arena not observed in {path}")
+        check(int(storage["unique_live_storage_bytes"]) >= int(storage["logical_payload_bytes"]), f"v2 optimized unique storage undercounts payload in {path}")
+        check(optimized["workspace_peak_includes_mid_o_and_descriptors"] is True, f"v2 workspace peak not declared in {path}")
+        workspace = optimized["transient_workspace"]
+        total_segments = int(optimized["cold_result"]["total_segments"])
+        descriptor_segments = int(optimized["cold_result"]["fp16_segments"]) + int(optimized["cold_result"]["int8_segments"])
+        expected_workspace = (2 * total_segments * 4) + (2 * int(shape["num_q_heads"]) * total_segments * int(shape["head_dim"] ) * 4) + (2 * int(shape["num_q_heads"]) * total_segments * 4) + (descriptor_segments * 4 * 4)
+        check(int(workspace["logical_bytes"]) == expected_workspace, f"v2 transient workspace arithmetic mismatch in {path}")
+        check(int(workspace["after_return_bytes"]) == 0, f"v2 transient workspace lifetime not released in {path}")
+        check(int(optimized["cold_peak_additional_allocated_bytes"]) >= 0 and int(optimized["cold_peak_additional_reserved_bytes"]) >= 0, f"v2 cold peak missing in {path}")
+        check(optimized["finite_output"] is True and float(optimized["max_abs_error_vs_page_oracle"]) <= 0.01, f"v2 optimized correctness failed in {path}")
+        timing = optimized["steady_state"]
+        check(len(timing["elapsed_ms_repeats"]) == int(timing["repetitions"]) == 2, f"v2 timing repetitions missing in {path}")
+        check(all(float(value) > 0 for value in timing["elapsed_ms_repeats"]), f"v2 timing values missing in {path}")
+        check(any(marker in timing["timing_boundary"].lower() for marker in ("no quality", "quality scoring excluded", "quality scoring is excluded")), f"v2 attention timing boundary is not quality-free in {path}")
+        release = case["release"]
+        check(int(release["logical_payload_bytes_before_release"]) > 0, f"v2 release payload missing in {path}")
+        check(int(release["allocator_allocated_after_release"]) <= int(release["allocator_allocated_before_release"]), f"v2 cache release did not reduce allocated memory in {path}")
+        check(int(release["allocator_reserved_after_release"]) <= int(release["allocator_reserved_before_release"]), f"v2 cache release did not reduce reserved memory in {path}")
+    check(data["verdict"]["full_model_request_level_capacity"] == "not_run", f"v2 overclaims request-level capacity in {path}")
+    checkpoint = data.get("checkpoint_probe")
+    check(checkpoint is not None and Path(checkpoint["model_path"]).exists(), f"v2 checkpoint probe is missing or unavailable in {path}")
+    check(int(checkpoint["prompt"]["token_count"]) == 31, f"v2 checkpoint probe did not use the boundary prompt in {path}")
+    check(len(checkpoint["methods"]) == 2, f"v2 checkpoint method coverage incomplete in {path}")
+    for method in checkpoint["methods"]:
+        check(len(method["timings"]) == 4, f"v2 checkpoint prefill/decode timing trace incomplete in {path}/{method['method']}")
+        positions = [int(row["token_position"]) for row in method["memory_trace"]]
+        check(positions == [31, 32, 33, 34], f"v2 checkpoint page-boundary positions missing in {path}/{method['method']}")
+        check(any(marker in method["timing_boundary"].lower() for marker in ("no quality scoring", "quality scoring excluded")), f"v2 checkpoint timing boundary is not quality-free in {path}/{method['method']}")
+        release = method["release"]
+        check(int(release["allocated_after"]) <= int(release["allocated_before"]), f"v2 checkpoint allocated release failed in {path}/{method['method']}")
+        check(int(release["reserved_after"]) <= int(release["reserved_before"]), f"v2 checkpoint reserved release failed in {path}/{method['method']}")
+    dynamic = next(row for row in checkpoint["methods"] if row["demote_old"] is True)
+    conversion = dynamic["conversion"]
+    check(conversion["all_layers"] is True and int(conversion["pages"]) == 16, f"v2 checkpoint dynamic conversion is not all-layer in {path}")
+    check(int(conversion["before_bytes"]) == 16 * expected_v2_page_bytes({"num_kv_heads": 8, "head_dim": 64}, "fp16"), f"v2 checkpoint conversion input mismatch in {path}")
+    check(int(conversion["after_bytes"]) == 16 * expected_v2_page_bytes({"num_kv_heads": 8, "head_dim": 64}, "int8"), f"v2 checkpoint conversion output mismatch in {path}")
+    check(dynamic["quality"].startswith("not scored"), f"v2 checkpoint quality boundary is stale in {path}")
+
+
+def public_v2_source_fingerprint() -> str:
+    digest = hashlib.sha256()
+    digest.update(b"scripts/reproduce_kivi.py")
+    digest.update((ROOT / "scripts/reproduce_kivi.py").read_bytes())
+    digest.update(b"vendor/public/KIVI")
+    digest.update(subprocess.check_output(["git", "-C", str(ROOT / "vendor/public/KIVI"), "rev-parse", "HEAD"], text=True).encode())
+    return digest.hexdigest()
+
+
+def verify_v2_cache_inventory(cache: dict, where: str) -> None:
+    records = cache["tensors"]
+    check(int(cache["tensor_count"]) == len(records), f"cache tensor count mismatch at {where}")
+    check(int(cache["logical_payload_bytes"]) == sum(int(row["logical_bytes"]) for row in records), f"cache logical inventory mismatch at {where}")
+    unique_by_alias = {}
+    for row in records:
+        unique_by_alias.setdefault(row["storage_alias_id"], int(row["storage_bytes"]))
+    check(int(cache["unique_live_storage_bytes"]) == sum(unique_by_alias.values()), f"cache unique storage inventory mismatch at {where}")
+
+
+def verify_v2_storage_ledger(storage: dict, where: str) -> None:
+    records = storage["tensor_inventory"]
+    check(int(storage["tensor_count"]) == len(records), f"native tensor count mismatch at {where}")
+    expected_logical = int(storage["logical_payload_bytes"]) + int(storage["metadata_bytes"]) + int(storage["packed_arena_and_map_bytes"]) + int(storage["workspace_logical_bytes"])
+    check(sum(int(row["logical_bytes"]) for row in records) == expected_logical, f"native logical storage inventory mismatch at {where}")
+    unique_by_alias = {}
+    for row in records:
+        unique_by_alias.setdefault(row["storage_alias_id"], int(row["storage_bytes"]))
+    check(int(storage["unique_live_storage_bytes"]) == sum(unique_by_alias.values()), f"native unique storage inventory mismatch at {where}")
+
+
+def verify_public_kv_v2(path: Path) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema"] == "public-kv-reproduction-v2", f"wrong public v2 schema in {path}")
+    provenance = data["provenance"]
+    current_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    check(provenance["reviewed_remote_commit"] == "8c0a0bfcc6bf87461c104603718ed2dc507df390", f"public reviewed commit missing in {path}")
+    check(provenance["local_commit"] == current_head, f"public v2 artifact was not run from current local commit in {path}")
+    check(provenance["source_sha256"] == public_v2_source_fingerprint(), f"public v2 source hash mismatch in {path}")
+    check(data["upstream_commit"] == "876b4d2d08e3b1d5f70d0969c299d8c7c42ddfb6", f"KIVI commit mismatch in {path}")
+    check(data["model_config"]["gqa_groups"] == 4, f"public v2 GQA shape missing in {path}")
+    check(data["compatibility"]["upstream_kivi_source_modified"] == "false", f"KIVI source was modified in {path}")
+    check(data["measurement_notes"]["performance_excludes_quality"] is True and data["measurement_notes"]["quality_scored_separately"] is True, f"public v2 timing boundary missing in {path}")
+    for name in ("baseline_fp16", "kivi"):
+        method = data[name]
+        performance = method["performance"]
+        quality = method["quality"]
+        memory = method["memory"]
+        repeats = int(performance["repetitions"])
+        check(len(performance["prefill_ms"]) == repeats and len(performance["decode_ms_for_tokens"]) == repeats, f"public v2 timing repeats incomplete in {path}/{name}")
+        check(all(float(value) > 0 for value in performance["decode_ms_for_tokens"]), f"public v2 decode timing missing in {path}/{name}")
+        check(any(marker in performance["timing_boundary"].lower() for marker in ("quality scoring excluded", "quality scoring is excluded")), f"public v2 performance boundary is not quality-free in {path}/{name}")
+        prefill = performance["cache_at_prefill"]
+        decode = performance["cache_at_decode_end"]
+        check(len(prefill) == repeats and len(decode) == repeats, f"public v2 cache phase snapshots incomplete in {path}/{name}")
+        check(all(int(row["token_position"]) == int(data["prompt_tokens"]) for row in prefill), f"public v2 prefill positions inconsistent in {path}/{name}")
+        check(all(int(row["token_position"]) == int(data["prompt_tokens"]) + int(data["decode_tokens"]) for row in decode), f"public v2 decode positions inconsistent in {path}/{name}")
+        check(all(int(row["cache"]["logical_payload_bytes"]) > 0 for row in prefill + decode), f"public v2 cache accounting missing in {path}/{name}")
+        for index, row in enumerate(prefill + decode):
+            verify_v2_cache_inventory(row["cache"], f"{path}/{name}/phase{index}")
+        trace = memory["trace"]
+        expected_positions = list(range(int(data["prompt_tokens"]), int(data["prompt_tokens"]) + int(data["decode_tokens"]) + 1))
+        check([int(row["token_position"]) for row in trace] == expected_positions, f"public v2 per-position trace missing in {path}/{name}")
+        check(int(trace[-1]["cache"]["logical_payload_bytes"]) > int(trace[0]["cache"]["logical_payload_bytes"]), f"public v2 decode append did not grow cache in {path}/{name}")
+        release = memory["release"]
+        check(int(release["allocated_after_empty_cache_bytes"]) <= int(release["allocated_before_empty_cache_bytes"]), f"public v2 cache release accounting failed in {path}/{name}")
+        check(int(release["reserved_after_empty_cache_bytes"]) <= int(release["reserved_before_empty_cache_bytes"]), f"public v2 reserved release accounting failed in {path}/{name}")
+        check(int(release["allocator_allocated_released_bytes"]) == int(release["allocated_before_empty_cache_bytes"]) - int(release["allocated_after_empty_cache_bytes"]), f"public v2 allocated release arithmetic mismatch in {path}/{name}")
+        check(int(release["allocator_reserved_released_bytes"]) == int(release["reserved_before_empty_cache_bytes"]) - int(release["reserved_after_empty_cache_bytes"]), f"public v2 reserved release arithmetic mismatch in {path}/{name}")
+        check(len(quality["token_nll"]) == int(data["decode_tokens"]), f"public v2 quality trace incomplete in {path}/{name}")
+    baseline_layers = int(data["baseline_fp16"]["cache_summary"]["layers"])
+    baseline_expected = int(data["batch_size"]) * baseline_layers * int(data["model_config"]["num_key_value_heads"]) * int(data["prompt_tokens"]) * int(data["model_config"]["head_dim"]) * 4
+    check(int(data["baseline_fp16"]["cache_bytes"][0]) == baseline_expected, f"public v2 baseline does not include K and V at matching position in {path}")
+
+
 def verify_break_even(path: Path) -> None:
     data = json.loads(path.read_text())
     check(data["schema"] == "kv-memory-pressure-break-even-v1", f"wrong break-even schema in {path}")
@@ -708,11 +891,15 @@ def main() -> None:
     verify_kv_quality(ROOT / "results/sensitivity/kv_precision_quality_batched_8b.json")
     verify_optimized_smoke(ROOT / "results/sensitivity/kv_precision_optimized_smoke_final.json")
     verify_break_even(ROOT / "results/sensitivity/kv_break_even_study.json")
+    verify_kv_measurement_v2(ROOT / "results/kv-measurement-v2/swiftllm_native_v2.json")
+    verify_public_kv_v2(ROOT / "results/kv-measurement-v2/kivi_llama32_1b_v2.json")
+    verify_public_kv_v2(ROOT / "results/kv-measurement-v2/kivi_llama31_8b_v2.json")
     invocations = json.loads((ROOT / "results/baseline/invocations.json").read_text())["commands"]
     invocation_names = {row["name"] for row in invocations}
     check("interaction_aware_structured_llama32_1b" in invocation_names, "1B interaction-aware invocation is missing")
     check("gated_interaction_aware_confirmation_llama31_8b" in invocation_names, "8B gated confirmation invocation is missing")
     check("artifact_verifier" in invocation_names and "unit_tests" in invocation_names, "current verification invocations are missing")
+    check("docs/kv-measurement-audit-v2.md" in (ROOT / "README.md").read_text(), "README does not link the v2 audit")
     for required in (
         "docs/baseline.md",
         "docs/claim-evidence.md",
@@ -740,6 +927,15 @@ def main() -> None:
         "results/sensitivity/kv_precision_quality_batched_8b.json",
         "results/sensitivity/kv_precision_optimized_smoke_final.json",
         "results/sensitivity/kv_break_even_study.json",
+        "scripts/kv_measurement_v2.py",
+        "scripts/reproduce_kivi.py",
+        "tests/test_kv_measurement_v2.py",
+        "docs/kv-measurement-audit-v2.md",
+        "results/kv-measurement-v2/command-status.txt",
+        "results/kv-measurement-v2/attempt-log.txt",
+        "results/kv-measurement-v2/swiftllm_native_v2.json",
+        "results/kv-measurement-v2/kivi_llama32_1b_v2.json",
+        "results/kv-measurement-v2/kivi_llama31_8b_v2.json",
     ):
         check((ROOT / required).exists(), f"missing required artifact: {required}")
     print("artifact verification passed: historical structured gate plus live-KV page storage, conversion, mixed attention, overlap, and quality traces verified")
