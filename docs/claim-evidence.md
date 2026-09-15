@@ -26,7 +26,22 @@ their claim narrowed accordingly.
 | HellaSwag supports the decision | Not used | New artifacts intentionally omit it as a criterion | Avoid small-subset decision making |
 | Native W4/W8 kernels should be implemented now | **No-go** | Final gate did not confirm a structured advantage | Reopen only after a future positive evidence phase |
 | Query routing or precision-aware batching should be implemented | **No-go / paused** | No multiple globally competitive profiles after 8B confirmation; scope flags false | Scheduler, KV quantization, swapping remain untouched |
-| Next direction should be KV-cache precision/serving behavior | Recommended | Final report and final gate next-direction field | Separate experiment required |
+| Next direction should be KV-cache precision/serving behavior | Historical recommendation | Earlier final report | Superseded by the matched action study below |
+
+## Optimized INT8 and memory-pressure action phase
+
+| Claim / uncertainty | Status | Evidence | Limitation / boundary |
+|---|---|---|---|
+| Optimized mixed FP16/INT8 attention exists without materializing pages to FP16 | Confirmed for the enabling path | `vendor/swiftLLM/swiftllm/worker/kernels/segmented_paged_attn.py`, `results/sensitivity/kv_break_even_study.json` | Compact copied arena and host segment construction; not a production scheduler |
+| Optimized path matches the explicit page oracle | Confirmed for measured cells | 54-cell artifact, max absolute error `0.00048828125`; `page_attention_for_layer` remains oracle | RTX 3090 and tested Llama shapes only |
+| Conversion is a batched GPU data-path operation | Confirmed | `PagedKVCache.demote_pages_batch`, `promote_pages_batch`, optimized quality artifacts, verifier | Python metadata publication and transient workspace remain |
+| Existing CPU/GPU swap was measured under matched all-layer bytes | Confirmed | `swiftllm_c.swap_blocks`, final artifact `cpu_offload` records | Preallocated dense cache reports reusable capacity, not physical free |
+| Queue, offload, and INT8 action costs are explicitly separated into transition and persistent terms | Confirmed | `scripts/kv_break_even_experiment.py`, verifier recomputes horizon costs | Queue is a predeclared duration model, not an online controller |
+| INT8 has a non-dominated break-even region | **Refuted for this study** | 0/324 global wins; INT8 below queue in 0/324 rows; `kv-break-even-report.md` | Scoped to this optimized path, format, GPU, and grid |
+| Queue is globally lowest cost | Confirmed for measured map | 284/324 horizon rows; remaining 40 are CPU-offload wins | Not a universal workload policy |
+| Old-page INT8 quality is acceptable | Supported but uncertain | Two short paired checkpoint probes, 100% top-1 in tested rows | One short probe per checkpoint; quality is not a positive runtime gate |
+| Later memory-pressure scheduler should open | **No-go** | Strict gate fails steady-state overhead and non-dominated-region criteria | Lossless actions only for next direction |
+| INT8 belongs in runtime action space | **No-go / removed** | Final report, completion audit, unchanged scheduler, no policy integration | Research enabling code is retained as auditable evidence; no serving policy selects it |
 
 ## Live KV-page precision phase
 
@@ -35,10 +50,10 @@ their claim narrowed accordingly.
 | SwiftLLM page abstraction supports FP16/INT8/INT4 | Confirmed | `vendor/swiftLLM/swiftllm/worker/kv_cache.py`, `docs/kv-page-format.md`, `tests/test_kv_cache.py` | One-tensor-per-page research allocator |
 | K/V format metadata is explicit at page granularity | Confirmed | `PagedKVCache.metadata_codes`, `KVPage.k_format/v_format`, verifier | K/V share a logical page but can differ in format |
 | Live demotion reclaims real memory without a steady-state FP16 shadow | Confirmed after synchronization | `kv_precision_mechanism.json` exact logical/`torch.cuda.memory_allocated` fields; verifier | Transient source is retained during async conversion until event completion |
-| Mixed-format attention is numerically correct | Confirmed | Explicit reconstruction test and model-backed quality traces | Current path is a PyTorch reference, not fused low-bit attention |
-| Conversion is fast enough by itself | Supported | 0.326--0.495 ms/page medians and 47--94 MiB/s synthetic rates | Per-page Python/allocator overhead; large concurrent arena not tested |
+| Mixed-format attention is numerically correct | Confirmed (historical oracle) | Explicit reconstruction test and model-backed quality traces | Earlier phase used a PyTorch reference; optimized follow-up is covered below |
+| Conversion is fast enough by itself | Historical supported | 0.326--0.495 ms/page medians and 47--94 MiB/s synthetic rates | Later batched measurements supersede per-page transition timing |
 | Conversion overlaps useful GPU work | Not demonstrated | CUDA event overlap traces are zero-error but hidden fraction is zero | Test uses concurrent matmuls, not a full serving workload |
 | Old-page INT8 quality is near-lossless | Supported but uncertain | 1B/8B paired forced-prefix traces, 100% top-1 for tested old-page fractions | One prompt/checkpoint probe per model and short generation |
 | INT4 quality is safe | No-go in tested proxy | Static/recent variants show NLL increases and top-1 mismatches | Other published outlier/attention-aware quantizers could differ |
-| Live demotion should drive a scheduler now | No-go | Mixed attention is about 3.7--6.9x slower at 50% compression at batch 8/context 1024; no useful overlap | A future packed fused kernel requires a new end-to-end gate |
+| Live demotion should drive a scheduler now | Historical no-go | Earlier reference path was about 3.7--6.9x slower at 50% compression; follow-up re-tested optimized path | Final matched action gate is covered below |
 | MorphServe was outperformed | Not claimed | Report records MorphServe KVResizer boundary and no equivalent run | MorphServe resizes capacity rather than quantizing live KV pages |

@@ -88,8 +88,8 @@ class EngineConfig:
         )
         parser.add_argument(
             "--kv-page-format",
-            choices=("dense_fp16", "fp16", "int8", "int4"),
+            choices=("dense_fp16",),
             default="dense_fp16",
-            help="Research page-store format; dense_fp16 preserves upstream behavior",
+            help="Runtime cache mode; precision experiments construct their research cache directly",
         )
         

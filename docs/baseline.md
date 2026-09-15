@@ -95,7 +95,10 @@ See `docs/feasibility-report.md` for the exact commands and decision, and use
 the checked-in `results/sensitivity/*_interaction_aware.json` artifacts. The
 verifier recomputes profile storage, summary/stability/bootstrap values, shard
 ID separation, combined execution coverage, staged gate provenance, and the
-1B projection count. The separate live-KV phase is reproduced with
-`scripts/kv_precision_experiment.py`; see `docs/kv-precision-report.md`. It
-uses actual packed page payloads but a transparent PyTorch mixed-attention
-reference, so it is not evidence of native low-bit kernel speed.
+1B projection count. The earlier live-KV phase is reproduced with
+`scripts/kv_precision_experiment.py`; see `docs/kv-precision-report.md`. The
+follow-up optimized INT8/action study is reproduced with
+`scripts/kv_break_even_experiment.py`; see `docs/kv-break-even-report.md`. It
+uses actual INT8 payloads and a format-specialized segmented Triton path, but
+its no-go is still scoped evidence rather than a claim about every future
+native low-bit kernel.

@@ -145,6 +145,67 @@ class ConversionResult:
     temporary_bytes: int
 
 
+@dataclasses.dataclass(frozen=True)
+class BatchConversionResult:
+    target_format: str
+    components: tuple[str, ...]
+    page_keys: tuple[tuple[int, int], ...]
+    before_bytes: int
+    after_bytes: int
+    reclaimed_bytes: int
+    elapsed_ms: float
+    temporary_bytes: int
+    per_page: tuple[ConversionResult, ...]
+
+
+@dataclasses.dataclass(frozen=True)
+class PackedAttentionStorage:
+    fp16_k: torch.Tensor
+    fp16_v: torch.Tensor
+    int8_k: torch.Tensor
+    int8_v: torch.Tensor
+    int8_k_scales: torch.Tensor
+    int8_v_scales: torch.Tensor
+    fp16_slots: torch.Tensor
+    int8_slots: torch.Tensor
+    empty_scales: torch.Tensor
+    page_numel: int
+    scale_count: int
+    group_size: int
+
+
+def _encode_tensor_batch(
+    values: torch.Tensor,
+    group_size: int,
+) -> tuple[torch.Tensor, torch.Tensor, int]:
+    """Encode [pages, ...] in one device-side INT8 data-path operation."""
+    if values.ndim < 2:
+        raise ValueError("batched values must have a page dimension")
+    pages, page_numel = values.shape[0], values[0].numel()
+    flat = values.float().reshape(pages, page_numel)
+    padded_numel = math.ceil(page_numel / group_size) * group_size
+    if padded_numel != page_numel:
+        flat = F.pad(flat, (0, padded_numel - page_numel))
+    groups = flat.reshape(pages, -1, group_size)
+    scales = groups.abs().amax(dim=2).clamp_min(torch.finfo(torch.float32).eps) / 127
+    payload = torch.round(groups / scales.unsqueeze(2)).clamp(-128, 127).to(torch.int8).reshape(pages, padded_numel)
+    return payload, scales.to(torch.float16), padded_numel
+
+
+def _decode_tensor_batch(
+    payload: torch.Tensor,
+    scales: torch.Tensor,
+    shape: tuple[int, ...],
+    padded_numel: int,
+    group_size: int,
+) -> torch.Tensor:
+    """Decode [pages, payload] to FP16 in one device-side operation."""
+    pages = payload.shape[0]
+    quantized = payload.to(torch.float32).reshape(pages, -1)
+    scale_values = scales.to(torch.float32).repeat_interleave(group_size, dim=1)
+    return (quantized * scale_values[:, :padded_numel])[:, :math.prod(shape)].reshape(pages, *shape).to(torch.float16)
+
+
 class PagedKVCache:
     """A page-granular KV cache suitable for mechanism experiments.
 
@@ -187,6 +248,10 @@ class PagedKVCache:
         )
         self._pages: dict[tuple[int, int], KVPage] = {}
         self._pending: dict[tuple[int, int], tuple[KVPage, torch.cuda.Event]] = {}
+        self._packed_attention_storage: PackedAttentionStorage | None = None
+
+    def _invalidate_packed_storage(self) -> None:
+        self._packed_attention_storage = None
 
     def _key(self, block_id: int, layer_id: int) -> tuple[int, int]:
         if not (0 <= block_id < self.num_blocks and 0 <= layer_id < self.num_layers):
@@ -253,6 +318,7 @@ class PagedKVCache:
         page = self._make_page(block_id, layer_id, full_k, full_v, k_format, v_format)
         self._pages[key] = page
         self._set_metadata(page)
+        self._invalidate_packed_storage()
 
     def _convert_page_sync(
         self,
@@ -310,9 +376,175 @@ class PagedKVCache:
         elapsed_ms = (time.perf_counter() - start) * 1000
         self._pages[key] = new_page
         self._set_metadata(new_page)
+        self._invalidate_packed_storage()
         return ConversionResult(
             block_id, layer_id, target_format, components,
             before, new_page.allocated_bytes, elapsed_ms, temporary,
+        )
+
+    def demote_pages_batch(
+        self,
+        page_keys: Iterable[tuple[int, int]],
+        target_format: PageFormat = "int8",
+        components: Iterable[str] = ("k", "v"),
+    ) -> BatchConversionResult:
+        """Quantize selected FP16 pages with one batched GPU operation.
+
+        Python only gathers metadata and slices the resulting batched payload;
+        scale/reduction/quantization work runs on the device as one data path.
+        INT8 is deliberately the only supported target for this API.
+        """
+        target_format = _check_format(target_format)
+        if target_format != "int8":
+            raise ValueError("batched conversion currently supports INT8 only")
+        components = tuple(components)
+        if not components or any(component not in ("k", "v") for component in components):
+            raise ValueError("components must contain k and/or v")
+        keys = tuple(self._key(*key) for key in page_keys)
+        if len(set(keys)) != len(keys):
+            raise ValueError("page_keys must be unique")
+        if not keys:
+            return BatchConversionResult("int8", components, (), 0, 0, 0, 0.0, 0, ())
+        for key in keys:
+            self._wait_page(key)
+        pages = [self._pages[key] for key in keys]
+        if any(any(_FORMAT_BITS[page.k_format if component == "k" else page.v_format] <= 8 for component in components) for page in pages):
+            raise ValueError("all selected components must currently be FP16")
+        before = sum(page.allocated_bytes for page in pages)
+        start_cpu = time.perf_counter()
+        start_event = stop_event = None
+        if self.device.type == "cuda":
+            start_event = torch.cuda.Event(enable_timing=True)
+            stop_event = torch.cuda.Event(enable_timing=True)
+            start_event.record(torch.cuda.current_stream(self.device))
+
+        encoded: dict[str, tuple[torch.Tensor, torch.Tensor, int]] = {}
+        for component in components:
+            source = torch.stack([
+                page.k_payload if component == "k" else page.v_payload
+                for page in pages
+            ])
+            encoded[component] = _encode_tensor_batch(source, self.group_size)
+        if self.device.type == "cuda":
+            stop_event.record(torch.cuda.current_stream(self.device))
+            stop_event.synchronize()
+            elapsed_ms = start_event.elapsed_time(stop_event)
+        else:
+            elapsed_ms = (time.perf_counter() - start_cpu) * 1000
+
+        per_page = []
+        for index, (key, old) in enumerate(zip(keys, pages)):
+            k_format = "int8" if "k" in components else old.k_format
+            v_format = "int8" if "v" in components else old.v_format
+            if "k" in components:
+                k_payload, k_scales, k_padded_all = encoded["k"]
+                k_payload, k_scales, k_padded = k_payload[index], k_scales[index], k_padded_all
+            else:
+                k_payload, k_scales, k_padded = old.k_payload, old.k_scales, old.k_padded_numel
+            if "v" in components:
+                v_payload, v_scales, v_padded_all = encoded["v"]
+                v_payload, v_scales, v_padded = v_payload[index], v_scales[index], v_padded_all
+            else:
+                v_payload, v_scales, v_padded = old.v_payload, old.v_scales, old.v_padded_numel
+            new_page = KVPage(
+                key[0], key[1], k_format, v_format,
+                k_payload, v_payload, k_scales, v_scales,
+                old.shape, k_padded, v_padded, old.group_size,
+            )
+            self._pages[key] = new_page
+            self._set_metadata(new_page)
+            per_page.append(ConversionResult(
+                key[0], key[1], target_format, components,
+                old.allocated_bytes, new_page.allocated_bytes,
+                elapsed_ms / len(keys), old.allocated_bytes,
+            ))
+        self._invalidate_packed_storage()
+        after = sum(self._pages[key].allocated_bytes for key in keys)
+        return BatchConversionResult(
+            target_format, components, keys, before, after, before - after,
+            elapsed_ms, before, tuple(per_page),
+        )
+
+    def promote_pages_batch(
+        self,
+        page_keys: Iterable[tuple[int, int]],
+        target_format: PageFormat = "fp16",
+        components: Iterable[str] = ("k", "v"),
+    ) -> BatchConversionResult:
+        """Restore selected INT8 components to FP16 with one batched decode."""
+        target_format = _check_format(target_format)
+        if target_format != "fp16":
+            raise ValueError("batched promotion currently supports FP16 only")
+        components = tuple(components)
+        if not components or any(component not in ("k", "v") for component in components):
+            raise ValueError("components must contain k and/or v")
+        keys = tuple(self._key(*key) for key in page_keys)
+        if len(set(keys)) != len(keys):
+            raise ValueError("page_keys must be unique")
+        if not keys:
+            return BatchConversionResult("fp16", components, (), 0, 0, 0, 0.0, 0, ())
+        for key in keys:
+            self._wait_page(key)
+        pages = [self._pages[key] for key in keys]
+        if any(any((page.k_format if component == "k" else page.v_format) != "int8" for component in components) for page in pages):
+            raise ValueError("all selected components must currently be INT8")
+        before = sum(page.allocated_bytes for page in pages)
+        start_cpu = time.perf_counter()
+        start_event = stop_event = None
+        if self.device.type == "cuda":
+            start_event = torch.cuda.Event(enable_timing=True)
+            stop_event = torch.cuda.Event(enable_timing=True)
+            start_event.record(torch.cuda.current_stream(self.device))
+        decoded: dict[str, torch.Tensor] = {}
+        for component in components:
+            payload = torch.stack([
+                page.k_payload if component == "k" else page.v_payload
+                for page in pages
+            ])
+            scales = torch.stack([
+                page.k_scales if component == "k" else page.v_scales
+                for page in pages
+            ])
+            decoded[component] = _decode_tensor_batch(
+                payload, scales, pages[0].shape,
+                pages[0].k_padded_numel if component == "k" else pages[0].v_padded_numel,
+                self.group_size,
+            )
+        if self.device.type == "cuda":
+            stop_event.record(torch.cuda.current_stream(self.device))
+            stop_event.synchronize()
+            elapsed_ms = start_event.elapsed_time(stop_event)
+        else:
+            elapsed_ms = (time.perf_counter() - start_cpu) * 1000
+        per_page = []
+        for index, (key, old) in enumerate(zip(keys, pages)):
+            k_format = "fp16" if "k" in components else old.k_format
+            v_format = "fp16" if "v" in components else old.v_format
+            if "k" in components:
+                k_payload, k_scales, k_padded = decoded["k"][index], None, old.k_padded_numel
+            else:
+                k_payload, k_scales, k_padded = old.k_payload, old.k_scales, old.k_padded_numel
+            if "v" in components:
+                v_payload, v_scales, v_padded = decoded["v"][index], None, old.v_padded_numel
+            else:
+                v_payload, v_scales, v_padded = old.v_payload, old.v_scales, old.v_padded_numel
+            new_page = KVPage(
+                key[0], key[1], k_format, v_format,
+                k_payload, v_payload, k_scales, v_scales,
+                old.shape, k_padded, v_padded, old.group_size,
+            )
+            self._pages[key] = new_page
+            self._set_metadata(new_page)
+            per_page.append(ConversionResult(
+                key[0], key[1], target_format, components,
+                old.allocated_bytes, new_page.allocated_bytes,
+                elapsed_ms / len(keys), old.allocated_bytes,
+            ))
+        self._invalidate_packed_storage()
+        after = sum(self._pages[key].allocated_bytes for key in keys)
+        return BatchConversionResult(
+            target_format, components, keys, before, after, before - after,
+            elapsed_ms, before, tuple(per_page),
         )
 
     def demote_page_async(
@@ -353,6 +585,104 @@ class PagedKVCache:
         self._pages[key] = new_page
         self._pending[key] = (old, event)
         self._set_metadata(new_page)
+        self._invalidate_packed_storage()
+
+    def packed_attention_storage(self) -> PackedAttentionStorage:
+        """Pack resident FP16/INT8 payloads for the segmented Triton path."""
+        if self._packed_attention_storage is not None:
+            return self._packed_attention_storage
+        pages = sorted(self._pages.items())
+        if any(page.k_format not in ("fp16", "int8") or page.v_format not in ("fp16", "int8") for _, page in pages):
+            raise RuntimeError("optimized attention supports only FP16 and INT8 pages")
+        if any(page.k_format != page.v_format for _, page in pages):
+            raise RuntimeError("optimized attention requires matching K/V page formats")
+        page_numel = math.prod(self.page_shape)
+        scale_count = math.ceil(page_numel / self.group_size)
+        fp16_pages = [page for _, page in pages if page.k_format == "fp16"]
+        int8_pages = [page for _, page in pages if page.k_format == "int8"]
+        dtype_device = self.device
+        fp16_k = torch.stack([page.k_payload.reshape(-1) for page in fp16_pages]) if fp16_pages else torch.empty((0, page_numel), dtype=torch.float16, device=dtype_device)
+        fp16_v = torch.stack([page.v_payload.reshape(-1) for page in fp16_pages]) if fp16_pages else torch.empty((0, page_numel), dtype=torch.float16, device=dtype_device)
+        int8_k = torch.stack([page.k_payload.reshape(-1) for page in int8_pages]) if int8_pages else torch.empty((0, page_numel), dtype=torch.int8, device=dtype_device)
+        int8_v = torch.stack([page.v_payload.reshape(-1) for page in int8_pages]) if int8_pages else torch.empty((0, page_numel), dtype=torch.int8, device=dtype_device)
+        int8_k_scales = torch.stack([page.k_scales.reshape(-1) for page in int8_pages]) if int8_pages else torch.empty((0, scale_count), dtype=torch.float16, device=dtype_device)
+        int8_v_scales = torch.stack([page.v_scales.reshape(-1) for page in int8_pages]) if int8_pages else torch.empty((0, scale_count), dtype=torch.float16, device=dtype_device)
+        # Store maps as [layer, physical_block] so the kernel receives a
+        # contiguous per-layer vector. A [:, layer] view would have a stride
+        # of num_layers and would silently index the wrong page slots.
+        fp16_slots = torch.full((self.num_layers, self.num_blocks), -1, dtype=torch.int32, device=dtype_device)
+        int8_slots = torch.full((self.num_layers, self.num_blocks), -1, dtype=torch.int32, device=dtype_device)
+        fp_index = int_index = 0
+        for (block_id, layer_id), page in pages:
+            if page.k_format == "fp16":
+                fp16_slots[layer_id, block_id] = fp_index
+                fp_index += 1
+            else:
+                int8_slots[layer_id, block_id] = int_index
+                int_index += 1
+        storage = PackedAttentionStorage(
+            fp16_k, fp16_v, int8_k, int8_v,
+            int8_k_scales, int8_v_scales,
+            fp16_slots, int8_slots,
+            torch.empty((0,), dtype=torch.float16, device=dtype_device),
+            page_numel, scale_count, self.group_size,
+        )
+        self._packed_attention_storage = storage
+        return storage
+
+    def optimized_attention_supported(self, layer_id: int) -> bool:
+        """Return whether a layer can use the INT8/FP16 segmented kernel."""
+        return all(
+            page.layer_id != layer_id or (
+                page.k_format == page.v_format and page.k_format in ("fp16", "int8")
+            )
+            for page in self._pages.values()
+        )
+
+    def optimized_attention(
+        self,
+        q: torch.Tensor,
+        block_table: torch.Tensor,
+        seq_ids: torch.Tensor,
+        decoding_seq_lens: torch.Tensor,
+        model_config,
+        engine_config,
+        layer_id: int,
+        out: torch.Tensor,
+    ) -> dict[str, int]:
+        """Run the format-specialized Triton attention path."""
+        from swiftllm.worker.kernels.segmented_paged_attn import segmented_paged_attention
+
+        if self.device.type != "cuda":
+            raise RuntimeError("optimized attention requires CUDA")
+        storage = self.packed_attention_storage()
+        segments: dict[str, list[tuple[int, int, int, int]]] = {"fp16": [], "int8": []}
+        block_table_cpu = block_table.detach().cpu()
+        seq_ids_cpu = seq_ids.detach().cpu().tolist()
+        lengths_cpu = decoding_seq_lens.detach().cpu().tolist()
+        for batch_id, (seq_id, seq_len) in enumerate(zip(seq_ids_cpu, lengths_cpu)):
+            nblocks = math.ceil(seq_len / engine_config.block_size)
+            formats = []
+            for logical_block in range(nblocks):
+                physical_id = int(block_table_cpu[seq_id, logical_block].item())
+                page = self._pages[(physical_id, layer_id)]
+                if page.k_format != page.v_format or page.k_format not in ("fp16", "int8"):
+                    raise RuntimeError("optimized path needs matching FP16/INT8 K/V pages")
+                formats.append(page.k_format)
+            start = 0
+            batch_slot = 0
+            while start < nblocks:
+                format_name = formats[start]
+                end = start + 1
+                while end < nblocks and formats[end] == format_name and end - start < 32:
+                    end += 1
+                segments[format_name].append((batch_id, start, end - start, batch_slot))
+                batch_slot += 1
+                start = end
+        return segmented_paged_attention(
+            q, storage, block_table, seq_ids, decoding_seq_lens, out,
+            segments, model_config, engine_config, self.num_layers, layer_id,
+        )
 
     def read(self, block_id: int, layer_id: int) -> tuple[torch.Tensor, torch.Tensor]:
         key = self._key(block_id, layer_id)
@@ -391,6 +721,7 @@ class PagedKVCache:
                 self._wait_page(key)
                 del self._pages[key]
                 self.metadata_codes[key[0], key[1], :] = _FORMAT_CODES["fp16"]
+        self._invalidate_packed_storage()
 
     def synchronize(self) -> None:
         if self.device.type == "cuda":

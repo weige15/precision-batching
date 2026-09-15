@@ -1,4 +1,8 @@
-# Completion audit: live KV-page precision objective
+# Completion audit: live KV-page precision objective (historical pre-optimized phase)
+
+> This audit records the earlier reference-path phase. The active optimized
+> INT8 and queue/offload/compression audit is
+> [`kv-break-even-completion-audit.md`](kv-break-even-completion-audit.md).
 
 This audit checks the user-provided live-KV objective against the repository's
 current files, raw artifacts, commands, and verifier. It does not treat a green
