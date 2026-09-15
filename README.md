@@ -18,6 +18,7 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - [Public low-bit KV study](docs/public-kv-study.md) — KIVI/KVQuant/Kitty/QAQ/Minima-KV provenance, local reproductions, and integration recommendation.
 - [Public KV completion audit](docs/public-kv-completion-audit.md) — objective-to-artifact checklist and verification status.
 - [KV measurement audit v2](docs/kv-measurement-audit-v2.md) — corrected K/V accounting, native page/release evidence, checkpoint smoke, claim audit, and blockers.
+- [KV capacity report](docs/kv-capacity-report.md) — frozen RTX 3090 capacity/throughput verdict, raw artifact index, quality gates, and remaining uncertainty.
 
 ## What is included
 

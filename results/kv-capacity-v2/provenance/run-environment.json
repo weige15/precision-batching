@@ -1,0 +1,18 @@
+{
+  "schema": "kv-capacity-run-environment-v2",
+  "accepted_capacity_and_quality_runs": {
+    "CUDA_VISIBLE_DEVICES": "4 for current accepted reruns; historical accepted records retain their own visible_devices field",
+    "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+    "budget_fraction": 0.9,
+    "device": "cuda:0 inside the visibility mask",
+    "note": "The original pre-fix artifacts are retained but excluded from the final aggregation where a common allocator setting or corrected Llama-3.1 Swift loader was not present."
+  },
+  "software": {
+    "python": "3.12.3",
+    "torch": "2.4.0+cu121",
+    "transformers": "4.51.3",
+    "triton": "3.0.0",
+    "vllm-flash-attn": "2.6.2",
+    "cuda_driver": "580.159.03"
+  }
+}

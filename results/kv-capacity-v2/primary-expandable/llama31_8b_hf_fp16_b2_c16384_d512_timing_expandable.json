@@ -1,0 +1,63 @@
+{
+  "schema": "kv-capacity-cell-v2",
+  "status": "oom",
+  "method": "hf_fp16",
+  "model_family": "llama31_8b",
+  "context_tokens": 16384,
+  "decode_tokens": 512,
+  "batch_size": 2,
+  "instrumentation": "timing",
+  "environment": {
+    "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+    "torch": "2.4.0+cu121",
+    "cuda_runtime": "12.1",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "capability": [
+      8,
+      6
+    ],
+    "total_device_memory_bytes": 25296044032,
+    "declared_budget_fraction": 0.9,
+    "declared_budget_bytes": 22766439628,
+    "declared_budget_mib": 21711.76875,
+    "visible_devices": "4"
+  },
+  "allocator_at_failure": {
+    "allocated_bytes": 19567747584,
+    "reserved_bytes": 21854420992,
+    "peak_allocated_bytes": 22252102144,
+    "peak_reserved_bytes": 22630367232
+  },
+  "error": {
+    "type": "OutOfMemoryError",
+    "message": "CUDA out of memory. Tried to allocate 896.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 2.63 GiB is free. Process 3744372 has 256.00 MiB memory in use. Including non-PyTorch memory, this process has 20.66 GiB memory in use. Of the allocated memory 19.97 GiB is allocated by PyTorch, and 388.74 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 356, in main\n    result = run(args)\n             ^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 321, in run\n    result = hf_run(model, tokenizer, args.context_tokens, args.decode_tokens, args.batch_size, device, args.warmups, args.repeats, args.instrumentation == \"memory\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 198, in hf_run\n    cold_start = trajectory(timed=True)\n                 ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 175, in trajectory\n    output = hf_call(model, ids)\n             ^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_capacity_experiment_v2.py\", line 161, in hf_call\n    outputs = model.model(**kwargs)\n              ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/utils/generic.py\", line 965, in wrapper\n    output = func(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 571, in forward\n    layer_outputs = decoder_layer(\n                    ^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 334, in forward\n    hidden_states = self.mlp(hidden_states)\n                    ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1553, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1562, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/transformers/models/llama/modeling_llama.py\", line 172, in forward\n    down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))\n                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 896.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 2.63 GiB is free. Process 3744372 has 256.00 MiB memory in use. Including non-PyTorch memory, this process has 20.66 GiB memory in use. Of the allocated memory 19.97 GiB is allocated by PyTorch, and 388.74 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_capacity_experiment_v2.py",
+      "--output",
+      "results/kv-capacity-v2/primary-expandable/llama31_8b_hf_fp16_b2_c16384_d512_timing_expandable.json",
+      "--method",
+      "hf_fp16",
+      "--model-family",
+      "llama31_8b",
+      "--device",
+      "cuda:0",
+      "--context-tokens",
+      "16384",
+      "--decode-tokens",
+      "512",
+      "--batch-size",
+      "2",
+      "--instrumentation",
+      "timing",
+      "--warmups",
+      "1",
+      "--repeats",
+      "5"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}

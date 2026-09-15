@@ -1,0 +1,27 @@
+{
+  "schema": "kv-additional-request-v2",
+  "status": "blocked",
+  "error": {
+    "type": "OutOfMemoryError",
+    "message": "CUDA out of memory. Tried to allocate 192.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 1.93 GiB is free. Process 3744372 has 256.00 MiB memory in use. Including non-PyTorch memory, this process has 21.36 GiB memory in use. Of the allocated memory 20.88 GiB is allocated by PyTorch, and 163.12 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "traceback": "Traceback (most recent call last):\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_additional_request_v2.py\", line 93, in main\n    result = {\"schema\": \"kv-additional-request-v2\", \"status\": \"completed\", \"model_family\": args.model_family, \"model_path\": path, \"model_files\": model_files(path), \"context_tokens\": args.context_tokens, \"decode_tokens\": args.decode_tokens, \"base_batch\": args.base_batch, \"budget\": environment(device, args.budget_fraction), \"provenance\": {\"git_head\": subprocess.check_output([\"git\", \"-C\", str(ROOT), \"rev-parse\", \"HEAD\"], text=True).strip(), \"source_sha256\": source_hash(), \"swiftllm_upstream_commit\": (ROOT / \"vendor/swiftLLM/UPSTREAM_COMMIT\").read_text().strip()}, \"protocol\": \"base batch is prefetched, then one additional request is allocated in a fresh exact-pool and one-extra-pool replay; no scheduler\", \"exact_pool\": one_pool(path, args.context_tokens, args.decode_tokens, args.base_batch, args.base_batch, device, args.budget_fraction), \"one_extra_pool\": one_pool(path, args.context_tokens, args.decode_tokens, args.base_batch, args.base_batch + 1, device, args.budget_fraction), \"invocation\": {\"argv\": sys.argv, \"cwd\": os.getcwd()}}\n                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/scripts/kv_additional_request_v2.py\", line 54, in one_pool\n    model.forward(prompt_lists[:base_batch], list(range(base_batch)), [], return_logits=False)\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/model.py\", line 397, in forward\n    output = self._forward(\n             ^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/model.py\", line 260, in _forward\n    input_embds = layer.forward(\n                  ^^^^^^^^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/layers/transformer_layer.py\", line 187, in forward\n    ffn_out = linear(\n              ^^^^^^^\n  File \"/nfs/home/s314511048/precision-batching/vendor/swiftLLM/swiftllm/worker/kernels/linear.py\", line 27, in linear\n    return torch.nn.functional.linear(a, w)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 192.00 MiB. GPU 0 has a total capacity of 23.56 GiB of which 1.93 GiB is free. Process 3744372 has 256.00 MiB memory in use. Including non-PyTorch memory, this process has 21.36 GiB memory in use. Of the allocated memory 20.88 GiB is allocated by PyTorch, and 163.12 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+  },
+  "invocation": {
+    "argv": [
+      "scripts/kv_additional_request_v2.py",
+      "--output",
+      "results/kv-capacity-v2/additional-request/llama31_8b_c8192_base3_v2.json",
+      "--model-family",
+      "llama31_8b",
+      "--context-tokens",
+      "8192",
+      "--decode-tokens",
+      "256",
+      "--base-batch",
+      "3",
+      "--device",
+      "cuda:0"
+    ],
+    "cwd": "/nfs/home/s314511048/precision-batching"
+  }
+}
