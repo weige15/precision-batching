@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
-"""Model-level structured weight precision experiment.
+"""Interaction-aware structured weight-precision evidence experiment.
 
-This is an offline numerical experiment, not a serving implementation.  It
-uses the same symmetric per-input-group fake-quantization proxy as the
-SwiftLLM research fork, but evaluates all attention projections (Q/K/V/O) and
-one FFN block unit (gate/up/down together).  A unit is one projection or one
-layer's FFN block.  Single-unit calibration measurements feed deterministic
-budgeted policy heuristics; every selected policy is then run on held-out
-language-model text and a held-out multiple-choice task set.
+This is an offline numerical experiment for the *weight* proxy only.  It
+starts at a uniform W8 model, measures every Q/K/V/O/FFN unit relative to that
+same W8 model, and searches by executing combined profiles on calibration
+shards.  The single-unit measurements are move proposals only: profile
+selection uses measured combined-model calibration results and a shard
+stability rule.
 
-Important scope boundaries:
-* weights are quantize/dequantized FP16 tensors, never packed low-bit kernels;
-* KV-cache quantization is not used;
-* task accuracy is teacher-forced multiple-choice scoring, not free generation;
-* all storage comparisons use explicit representation-aware bit counts.
+The proxy is symmetric groupwise quantize/dequantize back to FP16.  It is not a
+packed W4/W8 kernel and says nothing about serving speed, KV-cache precision,
+or scheduler behavior.
 """
 
 from __future__ import annotations
@@ -61,12 +58,18 @@ BITS = (4, 8, 16)
 UNIT_NAMES = ("q", "k", "v", "o", "ffn")
 GROUP_SIZE = 128
 SCALE_BITS = 16
+STORAGE_FIELDS = (
+    "weight_payload_bits",
+    "padding_bits",
+    "scale_bits",
+    "zero_point_bits",
+    "metadata_bits",
+    "total_bits",
+)
 
 
 @dataclass(frozen=True)
 class MatrixShape:
-    """Shape and representation cost metadata for one weight matrix."""
-
     name: str
     out_features: int
     in_features: int
@@ -102,45 +105,35 @@ class Unit:
     def numel(self) -> int:
         return sum(matrix.numel for matrix in self.matrices)
 
-    def storage(self, bits: int) -> dict[str, int | float | bool]:
-        """Return exact modeled storage bits for this unit.
-
-        FP16 is represented directly and therefore pays no quantization scale
-        or zero-point overhead.  Quantized matrices use padded groups of
-        ``GROUP_SIZE`` input channels, one FP16 symmetric scale per group, and
-        no zero point.  There is no unmodeled metadata in this representation;
-        the result is explicitly marked as a model of the proxy format.
-        """
+    def storage(self, bits: int) -> dict[str, int | bool]:
         if bits == 16:
-            weight_bits = 16 * self.numel
-            padding_bits = 0
-            scale_bits = 0
-            zero_point_bits = 0
+            weight_payload_bits = 16 * self.numel
+            padding_bits = scale_bits = zero_point_bits = 0
         elif bits in (4, 8):
             quantized_numel = sum(matrix.quantized_numel for matrix in self.matrices)
-            weight_bits = bits * quantized_numel
+            weight_payload_bits = bits * quantized_numel
             padding_bits = bits * sum(matrix.quantized_numel - matrix.numel for matrix in self.matrices)
             scale_bits = SCALE_BITS * sum(matrix.scale_count for matrix in self.matrices)
             zero_point_bits = 0
         else:
             raise ValueError(f"unsupported bits: {bits}")
-        total = weight_bits + scale_bits + zero_point_bits
+        total_bits = weight_payload_bits + scale_bits + zero_point_bits
         return {
             "bits": bits,
-            "weight_payload_bits": weight_bits,
+            "weight_payload_bits": weight_payload_bits,
             "padding_bits": padding_bits,
             "scale_bits": scale_bits,
             "zero_point_bits": zero_point_bits,
             "metadata_bits": 0,
-            "total_bits": total,
-            "total_bytes": total / 8,
+            "total_bits": total_bits,
+            "total_bytes": total_bits // 8,
             "includes_padding": bits != 16,
             "includes_scale": bits != 16,
             "includes_zero_point": False,
         }
 
 
-@dataclass
+@dataclass(frozen=True)
 class Profile:
     name: str
     kind: str
@@ -149,46 +142,41 @@ class Profile:
     optimizer: str | None = None
     fixed_fp16_bits: int = 0
 
-    def storage(self, units: list[Unit]) -> dict[str, int | float | bool]:
-        totals: dict[str, int] = {
-            "weight_payload_bits": 0,
-            "padding_bits": 0,
-            "scale_bits": 0,
-            "zero_point_bits": 0,
-            "metadata_bits": 0,
-            "total_bits": 0,
-        }
+    def signature(self, units: list[Unit]) -> str:
+        return ",".join(str(self.bits[unit.key]) for unit in units)
+
+    def storage(self, units: list[Unit]) -> dict[str, int | str]:
+        totals: dict[str, int] = {field: 0 for field in STORAGE_FIELDS}
         for unit in units:
-            cost = unit.storage(self.bits[unit.key])
-            for key in totals:
-                totals[key] += int(cost[key])
+            cost = unit.storage(int(self.bits[unit.key]))
+            for field in STORAGE_FIELDS:
+                totals[field] += int(cost[field])
         totals["weight_payload_bits"] += self.fixed_fp16_bits
         totals["total_bits"] += self.fixed_fp16_bits
         totals["fixed_fp16_bits"] = self.fixed_fp16_bits
-        totals["total_bytes"] = totals["total_bits"] / 8
+        totals["total_bytes"] = totals["total_bits"] // 8
         totals["profile_unit_count"] = len(units)
         totals["representation"] = "FP16 direct or symmetric groupwise fake-quantized payload; no packed metadata"
         return totals
 
-    def as_record(self, units: list[Unit]) -> dict[str, Any]:
+    def as_record(self, units: list[Unit], baseline: Profile | None = None) -> dict[str, Any]:
         storage = self.storage(units)
-        return {
+        record: dict[str, Any] = {
             "name": self.name,
             "kind": self.kind,
             "optimizer": self.optimizer,
             "target_bits": self.target_bits,
+            "signature": self.signature(units),
             "unit_bits": self.bits,
             "storage": storage,
         }
+        if baseline is not None:
+            record["storage_delta_vs_uniform_w8"] = storage_delta(storage, baseline.storage(units))
+        return record
 
 
 class ProfileState:
-    """Apply profiles while retaining original weights on CPU.
-
-    Keeping the original copy on CPU avoids an extra full model-sized GPU copy,
-    which is important for the 8B confirmation model.  Only units whose bit
-    assignment changes are transferred and quantized.
-    """
+    """Apply profiles while retaining one original CPU copy per unit."""
 
     def __init__(self, model: torch.nn.Module, units: list[Unit], device: torch.device):
         self.model = model
@@ -197,15 +185,15 @@ class ProfileState:
         self.original: dict[str, list[torch.Tensor]] = {}
         self.parameters: dict[str, list[torch.nn.Parameter]] = {}
         for unit in units:
-            params: list[torch.nn.Parameter] = []
-            original: list[torch.Tensor] = []
             layer = model.model.layers[unit.layer]
+            params: list[torch.nn.Parameter] = []
+            originals: list[torch.Tensor] = []
             for matrix in unit.matrices:
                 parameter = parameter_for_matrix(layer, matrix.name)
                 params.append(parameter)
-                original.append(parameter.detach().cpu().clone())
+                originals.append(parameter.detach().cpu().clone())
             self.parameters[unit.key] = params
-            self.original[unit.key] = original
+            self.original[unit.key] = originals
         self.active = {unit.key: 16 for unit in units}
 
     @torch.inference_mode()
@@ -231,41 +219,26 @@ class ProfileState:
 def parameter_for_matrix(layer: torch.nn.Module, name: str) -> torch.nn.Parameter:
     if name in UNIT_NAMES[:4]:
         return getattr(layer.self_attn, f"{name}_proj").weight
-    if name in {"ffn_gate", "ffn_up", "ffn_down"}:
-        if name == "ffn_gate":
-            return layer.mlp.gate_proj.weight
-        if name == "ffn_up":
-            return layer.mlp.up_proj.weight
+    if name == "ffn_gate":
+        return layer.mlp.gate_proj.weight
+    if name == "ffn_up":
+        return layer.mlp.up_proj.weight
+    if name == "ffn_down":
         return layer.mlp.down_proj.weight
     raise KeyError(name)
 
 
-def fixed_fp16_storage_bits(model: torch.nn.Module, units: list[Unit]) -> int:
-    """Count non-Q/K/V/O/FFN parameters kept directly in FP16.
-
-    Embeddings, LM head (when untied), norms, and any other parameters are
-    fixed across policy comparisons but are included in the reported model
-    weight ledger instead of silently omitted from the budget.
-    """
-    unit_parameter_ids = set()
-    for unit in units:
-        layer = model.model.layers[unit.layer]
-        unit_parameter_ids.update(id(parameter_for_matrix(layer, matrix.name)) for matrix in unit.matrices)
-    fixed_numel = sum(parameter.numel() for parameter in model.parameters() if id(parameter) not in unit_parameter_ids)
-    return int(fixed_numel * 16)
-
-
 def build_units(model: torch.nn.Module) -> list[Unit]:
     units: list[Unit] = []
+    unit_matrices = {
+        "q": ("q",),
+        "k": ("k",),
+        "v": ("v",),
+        "o": ("o",),
+        "ffn": ("ffn_gate", "ffn_up", "ffn_down"),
+    }
     for layer_id, layer in enumerate(model.model.layers):
-        matrices: dict[str, tuple[str, ...]] = {
-            "q": ("q",),
-            "k": ("k",),
-            "v": ("v",),
-            "o": ("o",),
-            "ffn": ("ffn_gate", "ffn_up", "ffn_down"),
-        }
-        for unit_name, matrix_names in matrices.items():
+        for unit_name, matrix_names in unit_matrices.items():
             shapes = []
             for matrix_name in matrix_names:
                 parameter = parameter_for_matrix(layer, matrix_name)
@@ -274,16 +247,38 @@ def build_units(model: torch.nn.Module) -> list[Unit]:
     return units
 
 
+def fixed_fp16_storage_bits(model: torch.nn.Module, units: list[Unit]) -> int:
+    unit_parameter_ids = set()
+    for unit in units:
+        layer = model.model.layers[unit.layer]
+        unit_parameter_ids.update(id(parameter_for_matrix(layer, matrix.name)) for matrix in unit.matrices)
+    fixed_numel = sum(parameter.numel() for parameter in model.parameters() if id(parameter) not in unit_parameter_ids)
+    return int(fixed_numel * 16)
+
+
 def profile_from_unit_bits(name: str, kind: str, units: list[Unit], values: dict[str, int], **kwargs: Any) -> Profile:
-    return Profile(name=name, kind=kind, bits={unit.key: int(values[unit.key]) for unit in units}, **kwargs)
+    return Profile(name, kind, {unit.key: int(values[unit.key]) for unit in units}, **kwargs)
 
 
 def uniform_profile(units: list[Unit], bits: int, name: str | None = None, fixed_fp16_bits: int = 0) -> Profile:
-    return profile_from_unit_bits(name or f"uniform_w{bits}", "uniform", units, {unit.key: bits for unit in units}, target_bits=bits, fixed_fp16_bits=fixed_fp16_bits)
+    return profile_from_unit_bits(
+        name or f"uniform_w{bits}",
+        "uniform",
+        units,
+        {unit.key: bits for unit in units},
+        target_bits=bits,
+        fixed_fp16_bits=fixed_fp16_bits,
+    )
+
+
+def storage_delta(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, int]:
+    result = {field: int(candidate[field]) - int(baseline[field]) for field in STORAGE_FIELDS}
+    result["fixed_fp16_bits"] = int(candidate.get("fixed_fp16_bits", 0)) - int(baseline.get("fixed_fp16_bits", 0))
+    result["total_bytes"] = result["total_bits"] // 8
+    return result
 
 
 def manual_storage_cases() -> dict[str, Any]:
-    """Small exact cases used by tests and the artifact verifier."""
     divisible = Unit(0, "q", (MatrixShape("q", 2, 128),))
     nondivisible = Unit(0, "q", (MatrixShape("q", 2, 129),))
     return {
@@ -295,6 +290,7 @@ def manual_storage_cases() -> dict[str, Any]:
             "w4_scale_is_one_per_row_group": divisible.storage(4)["scale_bits"] == 2 * 16,
             "padding_is_counted": nondivisible.storage(4)["padding_bits"] == (2 * 256 - 2 * 129) * 4,
             "fp16_has_no_scale": divisible.storage(16)["scale_bits"] == 0,
+            "bytes_are_exact_integers": all(isinstance(divisible.storage(bits)["total_bytes"], int) for bits in BITS),
         },
     }
 
@@ -307,17 +303,26 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def git_revision() -> str | None:
-    marker = SWIFT_ROOT / "UPSTREAM_COMMIT"
+def git_revision(path: Path) -> str | None:
+    marker = path / "UPSTREAM_COMMIT"
     if marker.exists():
         return marker.read_text().strip()
     try:
-        return subprocess.check_output(["git", "-C", str(SWIFT_ROOT), "rev-parse", "HEAD"], text=True).strip()
+        return subprocess.check_output(["git", "-C", str(path), "rev-parse", "HEAD"], text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         return None
 
 
-def load_text_sequences(tokenizer: Any, split: str, count: int, seq_len: int, cache_dir: str | None) -> list[dict[str, Any]]:
+def git_source_provenance() -> dict[str, str | None]:
+    try:
+        branch = subprocess.check_output(["git", "-C", str(ROOT), "branch", "--show-current"], text=True).strip()
+        commit = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        branch = commit = None
+    return {"branch": branch, "commit_at_run": commit, "base_commit": commit}
+
+
+def tokenize_split(tokenizer: Any, split: str, cache_dir: str | None) -> list[int]:
     dataset = load_dataset(
         "wikitext",
         "wikitext-2-raw-v1",
@@ -326,45 +331,94 @@ def load_text_sequences(tokenizer: Any, split: str, count: int, seq_len: int, ca
         download_mode="reuse_dataset_if_exists",
     )
     text = "\n".join(row["text"] for row in dataset if row["text"].strip())
-    ids = tokenizer(text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
-    needed = count * seq_len
-    if len(ids) < needed:
-        raise RuntimeError(f"Wikitext {split} has only {len(ids)} tokens; need {needed}")
-    records = []
-    for index in range(count):
-        start = index * seq_len
-        records.append({"sample_id": f"wikitext_{split}_{index:04d}", "input_ids": ids[start : start + seq_len]})
-    return records
+    return tokenizer(text, add_special_tokens=False, return_attention_mask=False)["input_ids"]
 
 
-def load_task_examples(tokenizer: Any, count: int, seed: int, cache_dir: str | None) -> list[dict[str, Any]]:
-    dataset = load_dataset(
-        "Rowan/hellaswag",
-        split="validation",
-        cache_dir=cache_dir,
-        download_mode="reuse_dataset_if_exists",
-    )
-    indices = list(range(len(dataset)))
-    random.Random(seed).shuffle(indices)
-    records = []
-    for index in indices[:count]:
-        row = dataset[index]
-        prompt = f"{row['activity_label']}: {row['ctx_a']} {row['ctx_b'].capitalize()}"
-        prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
-        choices = [tokenizer(" " + ending, add_special_tokens=False)["input_ids"] for ending in row["endings"]]
-        records.append({
-            "sample_id": f"hellaswag_{index:05d}",
-            "prompt": prompt,
-            "prompt_ids": prompt_ids,
-            "choice_ids": choices,
-            "label": int(row["label"]),
+def dispersed_windows(
+    tokenizer: Any,
+    split: str,
+    shards: int,
+    samples_per_shard: int,
+    seq_len: int,
+    seed: int,
+    cache_dir: str | None,
+) -> tuple[list[list[dict[str, Any]]], dict[str, Any]]:
+    """Choose deterministic random, dispersed, non-overlapping token windows.
+
+    Starts are sampled independently inside evenly spaced corpus buckets.  The
+    bucket construction is only a sampling mechanism; all quality decisions
+    use the actual combined-model execution on each shard.
+    """
+    if shards < 1 or samples_per_shard < 1:
+        raise ValueError("shards and samples_per_shard must be positive")
+    ids = tokenize_split(tokenizer, split, cache_dir)
+    max_start = len(ids) - seq_len
+    if max_start < 0:
+        raise RuntimeError(f"Wikitext {split} has only {len(ids)} tokens; need {seq_len}")
+    total = shards * samples_per_shard
+    if max_start + 1 < total:
+        raise RuntimeError(f"not enough windows in Wikitext {split} for {total} samples")
+    rng = random.Random(seed)
+    starts: list[int] = []
+    bucket_width = max(1, (max_start + 1) // total)
+    for bucket in range(total):
+        lo = min(max_start, bucket * bucket_width)
+        hi = min(max_start, (bucket + 1) * bucket_width - 1)
+        choices = list(range(lo, hi + 1))
+        rng.shuffle(choices)
+        selected = next((candidate for candidate in choices if all(abs(candidate - old) >= seq_len for old in starts)), None)
+        if selected is None:
+            # This fallback is deterministic and is only relevant for tiny
+            # synthetic corpora where a bucket is narrower than a window.
+            candidates = list(range(max_start + 1))
+            rng.shuffle(candidates)
+            selected = next((candidate for candidate in candidates if all(abs(candidate - old) >= seq_len for old in starts)), None)
+        if selected is None:
+            raise RuntimeError(f"could not select non-overlapping windows for Wikitext {split}")
+        starts.append(selected)
+    starts.sort()
+    intervals = [[start, start + seq_len] for start in starts]
+    if any(right > left for (_, right), (left, _) in zip(intervals, intervals[1:])):
+        raise AssertionError("dispersed window selector produced overlap")
+    result = [[] for _ in range(shards)]
+    for index, start in enumerate(starts):
+        shard_id = index % shards
+        result[shard_id].append({
+            "sample_id": f"wikitext_{split}_shard{shard_id:02d}_window{index:04d}_start{start:08d}",
+            "input_ids": ids[start : start + seq_len],
+            "window_start": start,
+            "window_end": start + seq_len,
+            "shard": shard_id,
+            "split": split,
         })
-    return records
+    metadata = {
+        "dataset": f"wikitext-2-raw-v1/{split}",
+        "count": total,
+        "shard_count": shards,
+        "samples_per_shard": samples_per_shard,
+        "seq_len": seq_len,
+        "selection_seed": seed,
+        "selection_method": "randomized evenly spaced token buckets with non-overlap rejection",
+        "sample_ids": [record["sample_id"] for shard in result for record in shard],
+        "shards": [
+            {
+                "shard_id": shard_id,
+                "sample_ids": [record["sample_id"] for record in shard_records],
+                "window_starts": [record["window_start"] for record in shard_records],
+                "window_intervals": [[record["window_start"], record["window_end"]] for record in shard_records],
+            }
+            for shard_id, shard_records in enumerate(result)
+        ],
+        "all_windows_non_overlapping": True,
+        "dispersed_start_min": min(starts),
+        "dispersed_start_max": max(starts),
+    }
+    return result, metadata
 
 
-def batch_records(records: list[dict[str, Any]], batch_size: int) -> Iterable[list[dict[str, Any]]]:
+def batch_records(records: list[dict[str, Any]], batch_size: int) -> Iterable[tuple[int, list[dict[str, Any]]]]:
     for start in range(0, len(records), batch_size):
-        yield records[start : start + batch_size]
+        yield start, records[start : start + batch_size]
 
 
 def lm_batch_metrics(reference_logits: torch.Tensor, candidate_logits: torch.Tensor, input_ids: torch.Tensor) -> list[dict[str, float | int | str]]:
@@ -403,7 +457,7 @@ def lm_batch_metrics(reference_logits: torch.Tensor, candidate_logits: torch.Ten
 def summarize_records(records: list[dict[str, Any]]) -> dict[str, float]:
     if not records:
         return {}
-    keys = [key for key, value in records[0].items() if isinstance(value, (float, int)) and key not in {"token_count"}]
+    keys = [key for key, value in records[0].items() if isinstance(value, (float, int)) and key != "token_count"]
     summary = {key: float(np.mean([float(record[key]) for record in records])) for key in keys}
     if "nll" in summary:
         summary["perplexity_from_mean_nll"] = math.exp(min(summary["nll"], 30.0))
@@ -412,75 +466,55 @@ def summarize_records(records: list[dict[str, Any]]) -> dict[str, float]:
     return summary
 
 
-def evaluate_lm(
+def build_reference_cache(
+    model: torch.nn.Module,
+    state: ProfileState,
+    profile: Profile,
+    shards: list[list[dict[str, Any]]],
+    device: torch.device,
+    batch_size: int,
+) -> list[list[torch.Tensor]]:
+    """Cache reference logits on CPU once; candidates still execute normally."""
+    state.set_profile(profile)
+    cache: list[list[torch.Tensor]] = []
+    with torch.inference_mode():
+        for records in shards:
+            shard_cache: list[torch.Tensor] = []
+            for _, batch in batch_records(records, batch_size):
+                input_ids = torch.tensor([record["input_ids"] for record in batch], device=device, dtype=torch.long)
+                logits = model(input_ids=input_ids, use_cache=False, return_dict=True).logits.detach().cpu().half()
+                shard_cache.extend(row for row in logits)
+                del input_ids, logits
+            cache.append(shard_cache)
+    state.restore()
+    return cache
+
+
+def evaluate_lm_against_reference(
     model: torch.nn.Module,
     state: ProfileState,
     profile: Profile,
     records: list[dict[str, Any]],
+    reference_logits: list[torch.Tensor],
     device: torch.device,
     batch_size: int,
 ) -> dict[str, Any]:
-    """Evaluate a profile against a fresh FP16 reference for paired metrics."""
-    state.set_profile(None)
+    if len(records) != len(reference_logits):
+        raise ValueError("reference cache and records differ")
+    state.set_profile(profile)
     result_records: list[dict[str, Any]] = []
-    for batch in batch_records(records, batch_size):
-        input_ids = torch.tensor([record["input_ids"] for record in batch], device=device, dtype=torch.long)
-        with torch.inference_mode():
-            reference_logits = model(input_ids=input_ids, use_cache=False, return_dict=True).logits
-        state.set_profile(profile)
-        with torch.inference_mode():
-            candidate_logits = model(input_ids=input_ids, use_cache=False, return_dict=True).logits
-        result_records.extend(
-            {"sample_id": record["sample_id"], **metrics}
-            for record, metrics in zip(batch, lm_batch_metrics(reference_logits, candidate_logits, input_ids))
-        )
-        del input_ids, reference_logits, candidate_logits
-        state.set_profile(None)
-    state.set_profile(profile)
+    with torch.inference_mode():
+        for start, batch in batch_records(records, batch_size):
+            input_ids = torch.tensor([record["input_ids"] for record in batch], device=device, dtype=torch.long)
+            reference = torch.stack(reference_logits[start : start + len(batch)]).to(device=device)
+            candidate = model(input_ids=input_ids, use_cache=False, return_dict=True).logits
+            result_records.extend(
+                {"sample_id": record["sample_id"], **metrics}
+                for record, metrics in zip(batch, lm_batch_metrics(reference, candidate, input_ids))
+            )
+            del input_ids, reference, candidate
+    state.restore()
     return {"summary": summarize_records(result_records), "per_sample": result_records}
-
-
-def evaluate_task(model: torch.nn.Module, state: ProfileState, profile: Profile, records: list[dict[str, Any]], device: torch.device, batch_size: int) -> dict[str, Any]:
-    state.set_profile(profile)
-    per_sample = []
-    for batch in batch_records(records, batch_size):
-        flattened: list[tuple[dict[str, Any], int, list[int]]] = []
-        for record in batch:
-            for choice_index, choice_ids in enumerate(record["choice_ids"]):
-                ids = record["prompt_ids"] + choice_ids
-                flattened.append((record, choice_index, ids))
-        max_len = max(len(item[2]) for item in flattened)
-        input_ids = torch.zeros((len(flattened), max_len), device=device, dtype=torch.long)
-        attention = torch.zeros_like(input_ids)
-        for row, (_, _, ids) in enumerate(flattened):
-            input_ids[row, : len(ids)] = torch.tensor(ids, device=device)
-            attention[row, : len(ids)] = 1
-        with torch.inference_mode():
-            logits = model(input_ids=input_ids, attention_mask=attention, use_cache=False, return_dict=True).logits.float()
-        scores: dict[str, list[float]] = {}
-        for row, (record, choice_index, ids) in enumerate(flattened):
-            prompt_len = len(record["prompt_ids"])
-            choice_len = len(record["choice_ids"][choice_index])
-            positions = torch.arange(prompt_len - 1, prompt_len + choice_len - 1, device=device)
-            token_ids = input_ids[row, prompt_len : prompt_len + choice_len]
-            score = F.log_softmax(logits[row, positions], dim=-1).gather(-1, token_ids[:, None]).sum().item()
-            scores.setdefault(record["sample_id"], []).append(score)
-        for record in batch:
-            choice_scores = scores[record["sample_id"]]
-            predicted = int(np.argmax(choice_scores))
-            per_sample.append({
-                "sample_id": record["sample_id"],
-                "label": record["label"],
-                "predicted": predicted,
-                "choice_scores": choice_scores,
-                "correct": int(predicted == record["label"]),
-            })
-        del input_ids, attention, logits
-    state.set_profile(None)
-    return {
-        "summary": {"accuracy": float(np.mean([row["correct"] for row in per_sample])) if per_sample else float("nan"), "count": len(per_sample)},
-        "per_sample": per_sample,
-    }
 
 
 def bootstrap_mean(values: list[float], seed: int, iterations: int = 1000) -> dict[str, float | int]:
@@ -499,250 +533,226 @@ def bootstrap_mean(values: list[float], seed: int, iterations: int = 1000) -> di
     }
 
 
-def bootstrap_difference(candidate: list[float], reference: list[float], seed: int, iterations: int = 1000) -> dict[str, float | int]:
-    if len(candidate) != len(reference) or not candidate:
-        return {"mean": float("nan"), "ci95_low": float("nan"), "ci95_high": float("nan"), "count": 0, "bootstrap_iterations": iterations}
-    delta = np.asarray(candidate, dtype=np.float64) - np.asarray(reference, dtype=np.float64)
-    return bootstrap_mean(delta.tolist(), seed, iterations)
+def calibration_stability(result: dict[str, Any], shard_count: int, tolerance: float = 0.002) -> dict[str, Any]:
+    shard_deltas = [float(shard["summary"].get("nll_delta", 0.0)) for shard in result.get("shards", [])]
+    mean = float(np.mean(shard_deltas)) if shard_deltas else float("nan")
+    worst = float(max(shard_deltas)) if shard_deltas else float("nan")
+    std = float(np.std(shard_deltas)) if shard_deltas else float("nan")
+    improved = sum(delta < 0.0 for delta in shard_deltas)
+    required = max(2, math.ceil(shard_count * 2 / 3))
+    return {
+        "shard_nll_deltas": shard_deltas,
+        "mean_nll_delta": mean,
+        "worst_shard_nll_delta": worst,
+        "shard_std_nll_delta": std,
+        "improved_shard_count": improved,
+        "required_improved_shards": required,
+        "tolerance_nll": tolerance,
+        "stable_improvement": bool(mean < 0.0 and improved >= required and worst <= tolerance),
+        "stable_rank_score": float(mean + 0.5 * max(0.0, worst) + 0.25 * std) if shard_deltas else float("inf"),
+    }
 
 
-def unit_risk(single: dict[str, Any], unit: Unit, bits: int) -> float:
-    record = single[unit.key][str(bits)]
-    # Negative calibration deltas are not treated as free quality gains when
-    # allocating bits; they are sampling noise or an interaction artifact.
-    return max(0.0, float(record["summary"].get("nll_delta", 0.0)))
+def evaluate_calibration(
+    model: torch.nn.Module,
+    state: ProfileState,
+    profile: Profile,
+    calibration_shards: list[list[dict[str, Any]]],
+    reference_cache: list[list[torch.Tensor]],
+    device: torch.device,
+    batch_size: int,
+    stability_tolerance: float,
+) -> dict[str, Any]:
+    shard_results = []
+    all_records = []
+    for shard_id, (records, references) in enumerate(zip(calibration_shards, reference_cache)):
+        result = evaluate_lm_against_reference(model, state, profile, records, references, device, batch_size)
+        shard_results.append({"shard_id": shard_id, "summary": result["summary"], "per_sample": result["per_sample"]})
+        all_records.extend(result["per_sample"])
+    result = {"summary": summarize_records(all_records), "per_sample": all_records, "shards": shard_results}
+    result["stability"] = calibration_stability(result, len(calibration_shards), stability_tolerance)
+    return result
 
 
-def predicted_risk(units: list[Unit], single: dict[str, Any], bits: dict[str, int]) -> float:
-    return float(sum(unit_risk(single, unit, bits[unit.key],) for unit in units))
+def zero_calibration_result(reference: dict[str, Any], shard_count: int) -> dict[str, Any]:
+    records = []
+    shards = []
+    for shard_id in range(shard_count):
+        shards.append({"shard_id": shard_id, "summary": {"nll_delta": 0.0, "logit_mse": 0.0, "kl_reference_to_candidate": 0.0}, "per_sample": []})
+    return {
+        "summary": {"nll_delta": 0.0, "logit_mse": 0.0, "kl_reference_to_candidate": 0.0},
+        "per_sample": records,
+        "shards": shards,
+        "stability": {"reference": reference, "stable_improvement": False},
+    }
 
 
-def select_nearest(candidates: list[Profile], units: list[Unit], target_storage: int, single: dict[str, Any]) -> Profile:
-    feasible = [candidate for candidate in candidates if int(candidate.storage(units)["total_bits"]) <= target_storage]
-    if not feasible:
-        feasible = candidates
-    return min(
-        feasible,
-        key=lambda candidate: (
-            abs(int(candidate.storage(units)["total_bits"]) - target_storage),
-            predicted_risk(units, single, candidate.bits),
-            candidate.name,
-        ),
+def profile_rank(record: dict[str, Any]) -> tuple[float, float, float, str]:
+    stability = record["calibration"]["stability"]
+    return (
+        float(stability.get("stable_rank_score", float("inf"))),
+        float(stability.get("worst_shard_nll_delta", float("inf"))),
+        float(stability.get("shard_std_nll_delta", float("inf"))),
+        str(record["profile"]["signature"]),
     )
 
 
-def projection_policy(units: list[Unit], target_storage: int, single: dict[str, Any], fixed_fp16_bits: int = 0) -> Profile:
-    candidates = []
-    for values in itertools.product(BITS, repeat=len(UNIT_NAMES)):
-        by_name = dict(zip(UNIT_NAMES, values))
-        bits = {unit.key: by_name[unit.name] for unit in units}
-        candidates.append(Profile("projection_only_candidate", "projection_only", bits, target_bits=8, optimizer="exhaustive 5^3 enumeration", fixed_fp16_bits=fixed_fp16_bits))
-    selected = select_nearest(candidates, units, target_storage, single)
-    selected.name = "projection_only_budgeted"
-    return selected
-
-
-def greedy_policy(units: list[Unit], target_storage: int, single: dict[str, Any], grouping: str, priority: bool = False, fixed_fp16_bits: int = 0) -> Profile:
-    bits = {unit.key: 4 for unit in units}
-    groups: list[list[Unit]]
-    if grouping == "layer":
-        groups = [[unit for unit in units if unit.layer == layer] for layer in sorted({unit.layer for unit in units})]
-    elif grouping == "layer_by_projection":
-        groups = [[unit] for unit in units]
-    else:
-        raise ValueError(grouping)
-    current = Profile("working", grouping, bits, target_bits=8, fixed_fp16_bits=fixed_fp16_bits)
-    while True:
-        current_cost = int(current.storage(units)["total_bits"])
-        options: list[tuple[float, float, str, list[Unit], int]] = []
-        for group in groups:
-            old_bits = bits[group[0].key]
-            if any(bits[unit.key] != old_bits for unit in group):
-                continue
-            for new_bits in BITS:
-                if new_bits <= old_bits:
-                    continue
-                candidate_bits = dict(bits)
-                for unit in group:
-                    candidate_bits[unit.key] = new_bits
-                candidate = Profile("working", grouping, candidate_bits, target_bits=8, fixed_fp16_bits=fixed_fp16_bits)
-                cost = int(candidate.storage(units)["total_bits"])
-                if cost > target_storage:
-                    continue
-                reduction = predicted_risk(units, single, bits) - predicted_risk(units, single, candidate_bits)
-                extra = cost - current_cost
-                if extra <= 0:
-                    continue
-                ratio = reduction / extra
-                name = ",".join(unit.key for unit in group)
-                priority_value = 0.0
-                if priority:
-                    # V-first is deliberately interpretable rather than
-                    # sensitivity-optimized: it prefers V upgrades, then Q/K,
-                    # then O/FFN, with layer order as the final tie-break.
-                    priority_value = sum(1.0 if unit.name == "v" else 0.0 for unit in group)
-                options.append((ratio, priority_value, name, group, new_bits))
-        if not options:
-            break
-        if priority:
-            options.sort(key=lambda item: (-item[1], -item[0], item[2]))
-        else:
-            options.sort(key=lambda item: (-item[0], item[2], item[4]))
-        _, _, _, chosen_group, chosen_bits = options[0]
-        for unit in chosen_group:
-            bits[unit.key] = chosen_bits
-    name = "v_priority_budgeted" if priority else f"{grouping}_budgeted"
-    kind = "heuristic" if priority else grouping
-    return Profile(name, kind, bits, target_bits=8, optimizer="deterministic greedy upgrade under true storage budget", fixed_fp16_bits=fixed_fp16_bits)
-
-
-def category_exact_options(category_units: list[Unit], single: dict[str, Any]) -> list[tuple[int, float, dict[str, int]]]:
-    """Best assignment for each (number of W4, number of FP16) count."""
-    # Dynamic programming keeps the lowest calibration risk for every count
-    # pair, while retaining the actual layer assignment for reproducibility.
-    states: dict[tuple[int, int], tuple[float, dict[str, int]]] = {(0, 0): (0.0, {})}
-    for unit in category_units:
-        next_states: dict[tuple[int, int], tuple[float, dict[str, int]]] = {}
-        for (n4, n16), (risk, assignment) in states.items():
-            for bits in BITS:
-                new_counts = (n4 + int(bits == 4), n16 + int(bits == 16))
-                new_assignment = dict(assignment)
-                new_assignment[unit.key] = bits
-                new_value = (risk + unit_risk(single, unit, bits), new_assignment)
-                old = next_states.get(new_counts)
-                if old is None or (new_value[0], sorted(new_assignment.items())) < (old[0], sorted(old[1].items())):
-                    next_states[new_counts] = new_value
-        states = next_states
-    options = []
-    for (n4, n16), (risk, assignment) in states.items():
-        cost = sum(unit.storage(assignment[unit.key])["total_bits"] for unit in category_units)
-        baseline = sum(unit.storage(8)["total_bits"] for unit in category_units)
-        options.append((int(cost - baseline), risk, assignment))
-    return options
-
-
-def exact_layer_by_projection_policy(units: list[Unit], single: dict[str, Any], fixed_fp16_bits: int = 0) -> Profile:
-    """Meet-in-the-middle DP for an exactly uniform-W8 storage total.
-
-    The search is exact for the measured additive calibration objective and
-    the integer representation ledger. It is not an assertion that the
-    additive objective predicts the combined model (the interaction check is
-    run afterward).
-    """
-    by_name = [[unit for unit in units if unit.name == name] for name in UNIT_NAMES]
-    options = [category_exact_options(category, single) for category in by_name]
-
-    def combine(groups: list[list[tuple[int, float, dict[str, int]]]]) -> dict[int, tuple[float, dict[str, int]]]:
-        states: dict[int, tuple[float, dict[str, int]]] = {0: (0.0, {})}
-        for group in groups:
-            next_states: dict[int, tuple[float, dict[str, int]]] = {}
-            for delta, (risk, assignment) in states.items():
-                for option_delta, option_risk, option_assignment in group:
-                    new_delta = delta + option_delta
-                    new_risk = risk + option_risk
-                    new_assignment = assignment | option_assignment
-                    old = next_states.get(new_delta)
-                    if old is None or (new_risk, sorted(new_assignment.items())) < (old[0], sorted(old[1].items())):
-                        next_states[new_delta] = (new_risk, new_assignment)
-            states = next_states
-        return states
-
-    left = combine(options[:2])
-    right = combine(options[2:])
-    best: tuple[float, dict[str, int]] | None = None
-    for delta, (risk, assignment) in left.items():
-        other = right.get(-delta)
-        if other is None:
-            continue
-        candidate = (risk + other[0], assignment | other[1])
-        if best is None or (candidate[0], sorted(candidate[1].items())) < (best[0], sorted(best[1].items())):
-            best = candidate
-    if best is None:
-        raise RuntimeError("no exact layer-by-projection assignment matches the uniform W8 ledger")
-    profile = Profile(
-        "layer_by_projection_exact",
-        "layer_by_projection",
-        best[1],
-        target_bits=8,
-        optimizer="exact integer-budget meet-in-the-middle DP over unit-type count states",
-        fixed_fp16_bits=fixed_fp16_bits,
-    )
-    target = int(uniform_profile(units, 8, fixed_fp16_bits=fixed_fp16_bits).storage(units)["total_bits"])
-    if int(profile.storage(units)["total_bits"]) != target:
-        raise AssertionError("exact structured profile does not match uniform W8 total")
-    return profile
-
-
-def policy_set(units: list[Unit], single: dict[str, Any], fixed_fp16_bits: int = 0) -> list[Profile]:
-    target = int(uniform_profile(units, 8, fixed_fp16_bits=fixed_fp16_bits).storage(units)["total_bits"])
-    policies = [uniform_profile(units, 4, fixed_fp16_bits=fixed_fp16_bits), uniform_profile(units, 8, fixed_fp16_bits=fixed_fp16_bits), uniform_profile(units, 16, fixed_fp16_bits=fixed_fp16_bits)]
-    policies.append(projection_policy(units, target, single, fixed_fp16_bits))
-    policies.append(greedy_policy(units, target, single, "layer", fixed_fp16_bits=fixed_fp16_bits))
-    policies.append(greedy_policy(units, target, single, "layer_by_projection", fixed_fp16_bits=fixed_fp16_bits))
-    policies.append(greedy_policy(units, target, single, "layer_by_projection", priority=True, fixed_fp16_bits=fixed_fp16_bits))
-    policies.append(exact_layer_by_projection_policy(units, single, fixed_fp16_bits))
-    return policies
-
-
-def single_unit_measurements(model: torch.nn.Module, state: ProfileState, units: list[Unit], calibration: list[dict[str, Any]], device: torch.device, batch_size: int) -> dict[str, Any]:
+def single_unit_measurements(
+    model: torch.nn.Module,
+    state: ProfileState,
+    units: list[Unit],
+    baseline: Profile,
+    calibration_shards: list[list[dict[str, Any]]],
+    reference_cache: list[list[torch.Tensor]],
+    device: torch.device,
+    batch_size: int,
+    stability_tolerance: float,
+) -> dict[str, Any]:
     records: dict[str, Any] = {}
     for index, unit in enumerate(units, start=1):
-        print(f"single-unit [{index}/{len(units)}] {unit.key}", flush=True)
+        print(f"W8-centered marginal [{index}/{len(units)}] {unit.key}", flush=True)
         records[unit.key] = {}
         for bits in BITS:
-            profile = Profile(f"single_{unit.key}_w{bits}", "single_unit", {item.key: (bits if item.key == unit.key else 16) for item in units})
-            if bits == 16:
-                metric_result = {"summary": {"nll_delta": 0.0, "logit_mse": 0.0, "kl_reference_to_candidate": 0.0}, "per_sample": []}
+            profile = Profile(
+                f"w8_marginal_{unit.key}_to_w{bits}",
+                "w8_centered_marginal",
+                {item.key: (bits if item.key == unit.key else 8) for item in units},
+                target_bits=8,
+                fixed_fp16_bits=baseline.fixed_fp16_bits,
+            )
+            if bits == 8:
+                calibration = zero_calibration_result("uniform_w8", len(calibration_shards))
+                measured = False
             else:
-                metric_result = evaluate_lm(model, state, profile, calibration, device, batch_size)
-            records[unit.key][str(bits)] = metric_result
+                calibration = evaluate_calibration(
+                    model, state, profile, calibration_shards, reference_cache, device, batch_size, stability_tolerance
+                )
+                measured = True
+            records[unit.key][str(bits)] = {
+                "from_bits": 8,
+                "to_bits": bits,
+                "measured_combined_profile": measured,
+                "profile": profile.as_record(units, baseline),
+                "storage_delta_vs_uniform_w8": storage_delta(profile.storage(units), baseline.storage(units)),
+                "calibration": calibration,
+            }
     state.restore()
     return records
 
 
-def additive_prediction(single: dict[str, Any], units: list[Unit], profile: Profile, sample_index: int) -> dict[str, float]:
-    prediction = {"nll_delta": 0.0, "logit_mse": 0.0, "kl_reference_to_candidate": 0.0}
-    for unit in units:
-        bits = profile.bits[unit.key]
-        if bits == 16:
+def projection_profiles(units: list[Unit], fixed_fp16_bits: int) -> list[Profile]:
+    profiles = []
+    for index, values in enumerate(itertools.product(BITS, repeat=len(UNIT_NAMES))):
+        by_name = dict(zip(UNIT_NAMES, values))
+        bits = {unit.key: by_name[unit.name] for unit in units}
+        profiles.append(Profile(
+            f"projection_only_{index:03d}",
+            "projection_only",
+            bits,
+            target_bits=8,
+            optimizer="exhaustive 3^5 enumeration (243 assignments)",
+            fixed_fp16_bits=fixed_fp16_bits,
+        ))
+    return profiles
+
+
+def marginal_proposal_ranks(single: dict[str, Any], units: list[Unit]) -> tuple[list[Unit], list[Unit]]:
+    # These ranks only bound deterministic move generation.  They are never
+    # used to score or select a final combined profile.
+    def score(unit: Unit, bits: int) -> float:
+        return float(single[unit.key][str(bits)]["calibration"]["summary"].get("nll_delta", 0.0))
+    downgrades = sorted(units, key=lambda unit: (score(unit, 4), unit.key))
+    upgrades = sorted(units, key=lambda unit: (score(unit, 16), unit.key))
+    return downgrades, upgrades
+
+
+def neighbor_profiles(
+    anchor: Profile,
+    units: list[Unit],
+    target_storage: int,
+    fixed_fp16_bits: int,
+    downgrade_rank: list[Unit],
+    upgrade_rank: list[Unit],
+    proposal_width: int,
+) -> list[tuple[Profile, str]]:
+    current = anchor.bits
+    proposals: dict[str, tuple[Profile, str, tuple[Any, ...]]] = {}
+    def add(bits: dict[str, int], move: str, order: tuple[Any, ...]) -> None:
+        candidate = Profile("search_candidate", "interaction_aware_search", dict(bits), target_bits=8, optimizer="bounded deterministic beam/coordinate search; actual combined calibration ranking", fixed_fp16_bits=fixed_fp16_bits)
+        if int(candidate.storage(units)["total_bits"]) <= target_storage and candidate.signature(units) != anchor.signature(units):
+            old = proposals.get(candidate.signature(units))
+            value = (candidate, move, order)
+            if old is None or order < old[2]:
+                proposals[candidate.signature(units)] = value
+
+    # Coordinate moves let accepted profiles be recomputed rather than treating
+    # the W8 margins as a complete allocation search.
+    for rank, unit in enumerate(downgrade_rank[:proposal_width]):
+        if current[unit.key] != 4:
+            bits = dict(current)
+            bits[unit.key] = 4
+            add(bits, f"coordinate:{unit.key}->{4}", (0, rank, unit.key, 4))
+    for rank, unit in enumerate(upgrade_rank[:proposal_width]):
+        if current[unit.key] != 16:
+            bits = dict(current)
+            bits[unit.key] = 16
+            add(bits, f"coordinate:{unit.key}->{16}", (1, rank, unit.key, 16))
+    # Explicit paired 8->4 downgrade plus compensating 8->16 upgrade.
+    for down_rank, down in enumerate(downgrade_rank[:proposal_width]):
+        if current[down.key] != 8:
             continue
-        per_sample = single[unit.key][str(bits)].get("per_sample", [])
-        if not per_sample or sample_index >= len(per_sample):
-            continue
-        for key in prediction:
-            prediction[key] += max(0.0, float(per_sample[sample_index].get(key, 0.0)))
-    return prediction
+        for up_rank, up in enumerate(upgrade_rank[:proposal_width]):
+            if up.key == down.key or current[up.key] != 8:
+                continue
+            bits = dict(current)
+            bits[down.key] = 4
+            bits[up.key] = 16
+            add(bits, f"paired:{down.key}->4,{up.key}->16", (2, down_rank, up_rank, down.key, up.key))
+    return [(item[0], item[1]) for item in sorted(proposals.values(), key=lambda item: item[2])]
 
 
-def interaction_summary(single: dict[str, Any], units: list[Unit], profile: Profile, actual: dict[str, Any]) -> dict[str, Any]:
-    actual_rows = actual["per_sample"]
-    predictions = [additive_prediction(single, units, profile, index) for index in range(len(actual_rows))]
-    result = {}
-    for key in ("nll_delta", "logit_mse", "kl_reference_to_candidate"):
-        predicted = [row[key] for row in predictions]
-        measured = [float(row[key]) for row in actual_rows]
-        result[key] = {
-            "predicted_mean": float(np.mean(predicted)) if predicted else float("nan"),
-            "measured_mean": float(np.mean(measured)) if measured else float("nan"),
-            "measured_minus_predicted": float(np.mean(measured) - np.mean(predicted)) if measured else float("nan"),
-            "ratio_measured_to_predicted": float(np.mean(measured) / np.mean(predicted)) if predicted and np.mean(predicted) > 0 else None,
-            "paired_difference_bootstrap": bootstrap_difference(measured, predicted, 1731),
-        }
-    return result
+def actual_calibration_frontier(records: list[dict[str, Any]], target_storage: int) -> list[dict[str, Any]]:
+    feasible = [record for record in records if int(record["profile"]["storage"]["total_bits"]) <= target_storage]
+    frontier = []
+    for candidate in feasible:
+        candidate_cost = int(candidate["profile"]["storage"]["total_bits"])
+        candidate_quality = float(candidate["calibration"]["summary"].get("nll_delta", float("inf")))
+        dominated = any(
+            int(other["profile"]["storage"]["total_bits"]) <= candidate_cost
+            and float(other["calibration"]["summary"].get("nll_delta", float("inf"))) <= candidate_quality
+            and (
+                int(other["profile"]["storage"]["total_bits"]) < candidate_cost
+                or float(other["calibration"]["summary"].get("nll_delta", float("inf"))) < candidate_quality
+            )
+            for other in feasible
+        )
+        if not dominated:
+            frontier.append(candidate)
+    return sorted(frontier, key=lambda record: (int(record["profile"]["storage"]["total_bits"]), profile_rank(record)))
 
 
-def attach_quality_intervals(result: dict[str, Any], seed: int, iterations: int = 1000) -> dict[str, Any]:
+def paired_against_w8(result: dict[str, Any], iterations: int, seed: int) -> dict[str, Any]:
     rows = result["per_sample"]
     metrics = {}
-    for key in ("nll", "nll_delta", "logit_mse", "kl_reference_to_candidate", "top1_match"):
-        values = [float(row[key]) for row in rows]
-        metric_offsets = {"nll": 11, "nll_delta": 23, "logit_mse": 37, "kl_reference_to_candidate": 41, "top1_match": 53}
-        metrics[key] = bootstrap_mean(values, seed + metric_offsets[key], iterations)
-    if result.get("task"):
-        values = [float(row["correct"]) for row in result["task"]["per_sample"]]
-        metrics["task_accuracy"] = bootstrap_mean(values, seed + 901, iterations)
-    result["bootstrap_95"] = metrics
+    for offset, key in enumerate(("nll_delta", "logit_mse", "kl_reference_to_candidate", "top1_match"), start=1):
+        metrics[key] = bootstrap_mean([float(row[key]) for row in rows], seed + offset, iterations)
+    return metrics
+
+
+def attach_heldout_evidence(result: dict[str, Any], iterations: int, seed: int) -> dict[str, Any]:
+    result["bootstrap_seed"] = seed
+    result["bootstrap_95"] = paired_against_w8(result, iterations, seed)
+    result["paired_nll_difference_vs_uniform_w8"] = result["bootstrap_95"]["nll_delta"]
+    result["paired_metric_differences_vs_uniform_w8"] = result["bootstrap_95"]
     return result
+
+
+def model_file_records(model_path: Path) -> list[dict[str, Any]]:
+    return [
+        {"name": path.name, "bytes": path.stat().st_size, "sha256": sha256(path)}
+        for path in sorted(model_path.iterdir())
+        if path.is_file() and path.suffix in {".json", ".safetensors"}
+    ]
 
 
 def main() -> None:
@@ -750,14 +760,24 @@ def main() -> None:
     parser.add_argument("--model-path")
     parser.add_argument("--output")
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--calibration-samples", type=int, default=16)
-    parser.add_argument("--heldout-samples", type=int, default=32)
-    parser.add_argument("--task-samples", type=int, default=32)
+    parser.add_argument("--calibration-shards", type=int, default=3)
+    parser.add_argument("--calibration-samples-per-shard", type=int, default=4)
+    parser.add_argument("--heldout-shards", type=int, default=4)
+    parser.add_argument("--heldout-samples-per-shard", type=int, default=16)
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--cache-dir", default=os.environ.get("HF_DATASETS_CACHE"))
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--bootstrap-iterations", type=int, default=1000)
+    parser.add_argument("--search-evaluation-budget", type=int, default=96)
+    parser.add_argument("--search-rounds", type=int, default=3)
+    parser.add_argument("--beam-width", type=int, default=2)
+    parser.add_argument("--proposal-width", type=int, default=8)
+    parser.add_argument("--stability-tolerance-nll", type=float, default=0.002)
+    parser.add_argument("--run-mode", choices=("exploration", "confirmation"), default="exploration")
+    parser.add_argument("--skip-projection-enumeration", action="store_true", help="confirmation mode: skip the 1B-only 3^5 projection sanity check")
+    parser.add_argument("--skip-w8-marginals", action="store_true", help="confirmation mode: use deterministic structural move proposals instead of repeating 1B marginal sweeps")
+    parser.add_argument("--gate-artifact", default=str(ROOT / "results/sensitivity/llama32_1b_interaction_aware.json"), help="1B gate artifact required before confirmation mode")
     parser.add_argument("--storage-self-test", action="store_true")
     args = parser.parse_args()
     if args.storage_self_test:
@@ -767,6 +787,17 @@ def main() -> None:
         parser.error("--model-path and --output are required unless --storage-self-test is used")
     if not torch.cuda.is_available() and args.device.startswith("cuda"):
         raise RuntimeError("CUDA is required for the full experiment")
+    gate_artifact = Path(args.gate_artifact).expanduser().resolve()
+    gate_data: dict[str, Any] | None = None
+    if args.run_mode == "confirmation":
+        if not gate_artifact.exists():
+            raise RuntimeError(f"confirmation requires the 1B gate artifact: {gate_artifact}")
+        gate_data = json.loads(gate_artifact.read_text())
+        if gate_data.get("final_gate", {}).get("decision") != "OPEN_8B_CONFIRMATION":
+            raise RuntimeError("confirmation is gated on a prior 1B OPEN_8B_CONFIRMATION decision")
+        if not args.skip_projection_enumeration or not args.skip_w8_marginals:
+            raise RuntimeError("confirmation mode requires the explicit 1B-only projection/marginal scope exclusions")
+
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -786,96 +817,229 @@ def main() -> None:
     units = build_units(model)
     fixed_bits = fixed_fp16_storage_bits(model, units)
     state = ProfileState(model, units, device)
-    calibration = load_text_sequences(tokenizer, "train", args.calibration_samples, args.seq_len, args.cache_dir)
-    heldout = load_text_sequences(tokenizer, "validation", args.heldout_samples, args.seq_len, args.cache_dir)
-    task = load_task_examples(tokenizer, args.task_samples, args.seed + 7, args.cache_dir)
+    calibration_shards, calibration_data = dispersed_windows(
+        tokenizer, "train", args.calibration_shards, args.calibration_samples_per_shard, args.seq_len, args.seed + 101, args.cache_dir
+    )
+    baseline = uniform_profile(units, 8, fixed_fp16_bits=fixed_bits)
+    print("building uniform-W8 calibration reference", flush=True)
+    calibration_reference = build_reference_cache(model, state, baseline, calibration_shards, device, args.batch_size)
     started = time.time()
-    single = single_unit_measurements(model, state, units, calibration, device, args.batch_size)
-    policies = policy_set(units, single, fixed_bits)
-    # Keep policy evaluation separate from policy selection: assignments use
-    # calibration single-unit results only, while headline quality is held out.
-    policy_results: list[dict[str, Any]] = []
-    for index, profile in enumerate(policies, start=1):
-        print(f"policy [{index}/{len(policies)}] {profile.name} storage={profile.storage(units)['total_bits']} bits", flush=True)
-        calibration_result = evaluate_lm(model, state, profile, calibration, device, args.batch_size)
-        heldout_result = evaluate_lm(model, state, profile, heldout, device, args.batch_size)
-        task_result = evaluate_task(model, state, profile, task, device, args.batch_size)
-        row = {
-            "profile": profile.as_record(units),
-            "calibration": calibration_result,
-            "heldout": heldout_result,
-            "task": task_result,
-            "interaction_calibration": interaction_summary(single, units, profile, calibration_result),
-        }
-        row["heldout"] = attach_quality_intervals(row["heldout"], args.seed + index * 100, args.bootstrap_iterations)
-        row["task"]["bootstrap_95"] = bootstrap_mean(
-            [float(item["correct"]) for item in row["task"]["per_sample"]],
-            args.seed + index * 100 + 901,
-            args.bootstrap_iterations,
+
+    # Every subsequent quality number is paired to this same combined W8
+    # reference.  The cache is only logits, not a quality shortcut.
+    evaluation_registry: dict[str, dict[str, Any]] = {}
+    def register(profile: Profile, calibration: dict[str, Any], origin: str) -> dict[str, Any]:
+        signature = profile.signature(units)
+        row = evaluation_registry.get(signature)
+        if row is None:
+            row = {"profile": profile.as_record(units, baseline), "calibration": calibration, "origins": [origin]}
+            evaluation_registry[signature] = row
+        elif origin not in row["origins"]:
+            row["origins"].append(origin)
+        return row
+
+    base_calibration = evaluate_calibration(
+        model, state, baseline, calibration_shards, calibration_reference, device, args.batch_size, args.stability_tolerance_nll
+    )
+    register(baseline, base_calibration, "uniform_w8_reference")
+
+    if args.skip_w8_marginals:
+        if args.run_mode != "confirmation":
+            raise ValueError("W8 marginal sweeps may only be skipped in confirmation mode")
+        single = {}
+        downgrade_rank = list(units)
+        upgrade_rank = list(reversed(units))
+        print("skipping repeated W8-centered marginal sweep for the gated confirmation; using deterministic structural move proposals", flush=True)
+    else:
+        single = single_unit_measurements(
+            model, state, units, baseline, calibration_shards, calibration_reference, device, args.batch_size, args.stability_tolerance_nll
         )
-        policy_results.append(row)
+
+    # Do not select one projection assignment using a proxy.  Execute every
+    # one of the 3^5 assignments, recording exact storage even when it is far
+    # below or above the W8 budget.  The feasible/near-budget counts are
+    # reported separately for the requested budgeted sanity check.
+    projection_all = projection_profiles(units, fixed_bits)
+    projection_records = []
+    if args.skip_projection_enumeration:
+        if args.run_mode != "confirmation":
+            raise ValueError("projection enumeration may only be skipped in confirmation mode")
+        print("skipping 1B-only projection enumeration for the gated 8B confirmation", flush=True)
+    else:
+        for index, profile in enumerate(projection_all, start=1):
+            print(f"projection exhaustive [{index}/{len(projection_all)}] {profile.name}", flush=True)
+            row = evaluation_registry.get(profile.signature(units))
+            if row is None:
+                row = register(
+                    profile,
+                    evaluate_calibration(model, state, profile, calibration_shards, calibration_reference, device, args.batch_size, args.stability_tolerance_nll),
+                    "projection_exhaustive_3^5",
+                )
+            else:
+                if "projection_exhaustive_3^5" not in row["origins"]:
+                    row["origins"].append("projection_exhaustive_3^5")
+            projection_records.append(row)
+
+    target_storage = int(baseline.storage(units)["total_bits"])
+    # One percent is a declared reporting band; all 243 are nevertheless
+    # executed, so no near-budget assignment is hidden by a prefilter.
+    projection_tolerance = max(1, int(target_storage * 0.01))
+    projection_costs = [int(row["profile"]["storage"]["total_bits"]) for row in projection_records]
+    feasible_projection = [row for row in projection_records if int(row["profile"]["storage"]["total_bits"]) <= target_storage]
+    near_projection = [row for row in projection_records if abs(int(row["profile"]["storage"]["total_bits"]) - target_storage) <= projection_tolerance]
+
+    if not args.skip_w8_marginals:
+        downgrade_rank, upgrade_rank = marginal_proposal_ranks(single, units)
+    search_records: list[dict[str, Any]] = []
+    search_history = []
+    search_new_evaluations = 0
+    beam = [evaluation_registry[baseline.signature(units)]]
+    for round_index in range(args.search_rounds):
+        anchors = list(beam)
+        generated: list[tuple[Profile, str, str]] = []
+        for anchor_row in anchors:
+            anchor_profile = Profile(
+                anchor_row["profile"]["name"],
+                anchor_row["profile"]["kind"],
+                {key: int(value) for key, value in anchor_row["profile"]["unit_bits"].items()},
+                target_bits=8,
+                fixed_fp16_bits=fixed_bits,
+            )
+            for profile, move in neighbor_profiles(
+                anchor_profile, units, target_storage, fixed_bits, downgrade_rank, upgrade_rank, args.proposal_width
+            ):
+                generated.append((profile, move, anchor_row["profile"]["signature"]))
+        # Dedup before consuming the explicit search budget.  Proposal ordering
+        # is deterministic; final ranking below uses only actual shard runs.
+        dedup: dict[str, tuple[Profile, str, str]] = {}
+        for item in generated:
+            dedup.setdefault(item[0].signature(units), item)
+        round_evaluated: list[dict[str, Any]] = []
+        for signature, (profile, move, anchor_signature) in sorted(dedup.items()):
+            row = evaluation_registry.get(signature)
+            if row is None:
+                if search_new_evaluations >= args.search_evaluation_budget:
+                    break
+                print(f"interaction search round={round_index} eval={search_new_evaluations + 1}/{args.search_evaluation_budget} {move}", flush=True)
+                row = register(
+                    profile,
+                    evaluate_calibration(model, state, profile, calibration_shards, calibration_reference, device, args.batch_size, args.stability_tolerance_nll),
+                    f"interaction_search_round_{round_index}",
+                )
+                search_new_evaluations += 1
+            elif f"interaction_search_round_{round_index}" not in row["origins"]:
+                row["origins"].append(f"interaction_search_round_{round_index}")
+            if row not in search_records:
+                search_records.append(row)
+            round_evaluated.append(row)
+        # Keep W8 as an anchor and retain the best actual combined candidates
+        # as exploration anchors.  A noisy candidate can therefore generate a
+        # next-round neighborhood, but it cannot change final held-out claims.
+        alternatives = [row for row in search_records if row["profile"]["signature"] != baseline.signature(units)]
+        beam = [evaluation_registry[baseline.signature(units)]] + sorted(alternatives, key=profile_rank)[: args.beam_width]
+        search_history.append({
+            "round": round_index,
+            "anchor_signatures": [row["profile"]["signature"] for row in anchors],
+            "generated_unique_count": len(dedup),
+            "evaluated_signatures": [row["profile"]["signature"] for row in round_evaluated],
+            "accepted_anchor_signatures": [row["profile"]["signature"] for row in beam],
+            "ranking": "actual combined calibration stable_rank_score, then worst shard, then shard std, then signature",
+        })
+        if search_new_evaluations >= args.search_evaluation_budget:
+            break
+
+    pool = [row for row in projection_records + search_records if int(row["profile"]["storage"]["total_bits"]) <= target_storage]
+    # Registry rows may occur in both lists; profile signatures are the unit of
+    # deduplication for the final frontier.
+    pool_by_signature = {row["profile"]["signature"]: row for row in pool}
+    frontier = actual_calibration_frontier(list(pool_by_signature.values()), target_storage)
+    if not any(row["profile"]["signature"] == baseline.signature(units) for row in frontier):
+        frontier.insert(0, evaluation_registry[baseline.signature(units)])
+
+    # Held-out windows are not loaded or evaluated until after search and are
+    # from the disjoint Wikitext validation split.
+    heldout_shards, heldout_data = dispersed_windows(
+        tokenizer, "validation", args.heldout_shards, args.heldout_samples_per_shard, args.seq_len, args.seed + 202, args.cache_dir
+    )
+    heldout_records = [record for shard in heldout_shards for record in shard]
+    heldout_reference = build_reference_cache(model, state, baseline, heldout_shards, device, args.batch_size)
+    frontier_results = []
+    for index, row in enumerate(frontier):
+        profile = Profile(
+            row["profile"]["name"],
+            row["profile"]["kind"],
+            {key: int(value) for key, value in row["profile"]["unit_bits"].items()},
+            target_bits=8,
+            fixed_fp16_bits=fixed_bits,
+        )
+        print(f"heldout frontier [{index + 1}/{len(frontier)}] {profile.name}", flush=True)
+        heldout_result = evaluate_lm_against_reference(
+            model, state, profile, heldout_records, [item for shard in heldout_reference for item in shard], device, args.batch_size
+        )
+        heldout_result = attach_heldout_evidence(heldout_result, args.bootstrap_iterations, args.seed + 7000 + index * 31)
+        frontier_results.append({
+            "profile": row["profile"],
+            "calibration": row["calibration"],
+            "origins": row["origins"],
+            "heldout_vs_uniform_w8": heldout_result,
+        })
     state.restore()
 
-    # The oracle is deliberately computed only over profiles actually executed
-    # at the same modeled storage cost (or the closest reported cost). It is an
-    # upper bound on query routing, not a deployable policy.
-    target = int(uniform_profile(units, 8, fixed_fp16_bits=fixed_bits).storage(units)["total_bits"])
-    min_gap = min(abs(int(row["profile"]["storage"]["total_bits"]) - target) for row in policy_results)
-    oracle_candidates = [row for row in policy_results if abs(int(row["profile"]["storage"]["total_bits"]) - target) == min_gap]
-    global_best = min(oracle_candidates, key=lambda row: row["heldout"]["summary"].get("nll", float("inf")))
-    by_sample = []
-    for sample_index, sample in enumerate(heldout):
-        choices = []
-        for row in oracle_candidates:
-            candidate_row = next(item for item in row["heldout"]["per_sample"] if item["sample_id"] == sample["sample_id"])
-            choices.append((float(candidate_row["nll"]), row["profile"]["name"], candidate_row))
-        best = min(choices, key=lambda item: item[0])
-        by_sample.append({"sample_id": sample["sample_id"], "chosen_profile": best[1], "nll": best[0]})
-    oracle_nll = [row["nll"] for row in by_sample]
-    global_nll = [next(item["nll"] for item in global_best["heldout"]["per_sample"] if item["sample_id"] == row["sample_id"]) for row in by_sample]
-    query_oracle = {
-        "budget_target_bits": target,
-        "candidate_storage_gap_bits": min_gap,
-        "candidate_profiles": [row["profile"] for row in oracle_candidates],
-        "global_profile": global_best["profile"],
-        "oracle_is_upper_bound": True,
-        "global_nll": bootstrap_mean(global_nll, args.seed + 5001, args.bootstrap_iterations),
-        "oracle_nll": bootstrap_mean(oracle_nll, args.seed + 5002, args.bootstrap_iterations),
-        "oracle_minus_global_nll": bootstrap_difference(oracle_nll, global_nll, args.seed + 5003, args.bootstrap_iterations),
-        "oracle_mse_reduction_fraction": None,
-        "choices": by_sample,
+    baseline_signature = baseline.signature(units)
+    gate_candidates = []
+    for row in frontier_results:
+        if row["profile"]["signature"] == baseline_signature:
+            continue
+        nll = row["heldout_vs_uniform_w8"]["paired_nll_difference_vs_uniform_w8"]
+        stable = bool(row["calibration"]["stability"].get("stable_improvement", False))
+        positive_signal = float(nll["mean"]) < 0.0 and float(nll["ci95_high"]) < 0.0
+        gate_candidates.append({
+            "profile": row["profile"],
+            "storage_leq_uniform_w8": int(row["profile"]["storage"]["total_bits"]) <= target_storage,
+            "heldout_paired_nll": nll,
+            "positive_confidence_signal": positive_signal,
+            "stable_calibration": stable,
+            "eligible": bool(positive_signal and stable),
+        })
+    eligible = [candidate for candidate in gate_candidates if candidate["eligible"]]
+    gate_passed = bool(eligible)
+    if args.run_mode == "confirmation":
+        gate_model = "Llama 3.1 8B"
+        gate_decision = "CONFIRMED_8B_REOPEN_NATIVE_KERNEL_GATE" if gate_passed else "NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION"
+        confirmation = {
+            "opened": True,
+            "model": "Llama 3.1 8B",
+            "reason": "1B gate passed; this is the gated 8B confirmation run",
+        }
+        next_direction = "reopen native-kernel feasibility; keep scheduler, KV quantization, and routing work paused" if gate_passed else "move to KV-cache precision/serving behavior; close weight-allocation search"
+    else:
+        gate_model = "Llama 3.2 1B"
+        gate_decision = "OPEN_8B_CONFIRMATION" if gate_passed else "NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION"
+        confirmation = {
+            "opened": gate_passed,
+            "model": "Llama 3.1 8B",
+            "reason": "opened only after the 1B gate" if gate_passed else "1B did not show a stable positive held-out Pareto signal; no 8B run was opened",
+        }
+        next_direction = "run the gated Llama 3.1 8B confirmation before reopening native kernels" if gate_passed else "move to KV-cache precision/serving behavior; keep weight-allocation search and native kernels paused"
+    gate = {
+        "run_mode": args.run_mode,
+        "model": gate_model,
+        "uniform_w8_storage_bits": target_storage,
+        "criterion": "non-uniform profile at equal-or-lower modeled storage, paired held-out NLL CI upper bound < 0, and stable improvement on at least two of three calibration shards with declared tolerance",
+        "candidate_checks": gate_candidates,
+        "eligible_profiles": [candidate["profile"] for candidate in eligible],
+        "gate_passed": gate_passed,
+        "one_b_gate_passed": gate_passed if args.run_mode == "exploration" else None,
+        "decision": gate_decision,
+        "confirmation": confirmation,
+        "next_direction": next_direction,
     }
-    global_mse = [next(item["logit_mse"] for item in global_best["heldout"]["per_sample"] if item["sample_id"] == row["sample_id"]) for row in by_sample]
-    # MSE oracle uses the same per-sample candidate choice selected by NLL only
-    # and is reported as descriptive, not as a second optimization target.
-    oracle_mse = []
-    for row in by_sample:
-        selected = next(item for item in oracle_candidates if item["profile"]["name"] == row["chosen_profile"])
-        oracle_mse.append(next(item["logit_mse"] for item in selected["heldout"]["per_sample"] if item["sample_id"] == row["sample_id"]))
-    query_oracle["oracle_mse_reduction_fraction"] = 1.0 - float(np.mean(oracle_mse)) / float(np.mean(global_mse)) if np.mean(global_mse) > 0 else 0.0
-    query_oracle["global_logit_mse"] = bootstrap_mean(global_mse, args.seed + 5004, args.bootstrap_iterations)
-    query_oracle["oracle_logit_mse"] = bootstrap_mean(oracle_mse, args.seed + 5005, args.bootstrap_iterations)
-    query_oracle["oracle_to_global_logit_mse_ratio"] = float(np.mean(oracle_mse) / np.mean(global_mse)) if np.mean(global_mse) > 0 else None
 
-    fp16_row = next(row for row in policy_results if row["profile"]["name"] == "uniform_w16")
-    fp16_rows = fp16_row["heldout"]["per_sample"]
-    fp16_noop = {
-        "max_abs_nll_delta": max((abs(float(row["nll_delta"])) for row in fp16_rows), default=0.0),
-        "max_logit_mse": max((float(row["logit_mse"]) for row in fp16_rows), default=0.0),
-        "max_kl_reference_to_candidate": max((float(row["kl_reference_to_candidate"]) for row in fp16_rows), default=0.0),
-        "min_top1_match": min((float(row["top1_match"]) for row in fp16_rows), default=1.0),
-        "defined_tolerance": {"nll_delta": 0.0, "logit_mse": 0.0, "kl": 0.0, "top1_mismatch": 0},
-    }
-
-    calibration_best = min(policy_results, key=lambda row: row["calibration"]["summary"].get("nll", float("inf")))
-    calibration_structured = min(
-        [row for row in policy_results if row["profile"]["kind"] != "uniform"],
-        key=lambda row: row["calibration"]["summary"].get("nll", float("inf")),
-    )
-
+    all_candidate_evaluations = list(evaluation_registry.values())
     result = {
-        "schema_version": 2,
-        "experiment": "structured_layer_by_projection_weight_precision",
+        "schema_version": 3,
+        "run_mode": args.run_mode,
+        "experiment": "interaction_aware_w8_centered_structured_weight_precision",
         "created_unix": time.time(),
         "elapsed_seconds": time.time() - started,
         "scope": {
@@ -883,7 +1047,20 @@ def main() -> None:
             "kv_cache_quantization": False,
             "native_low_bit_kernel": False,
             "scheduler_or_router": False,
+            "query_specific_oracle": False,
             "ffn_unit": "gate_proj + up_proj + down_proj as one layer-level unit",
+        },
+        "source_provenance": {
+            "required_branch": "structured-precision-evidence",
+            "required_base_commit": "b5fc47744d6c4aa1a46206439cdb6b70c29a88ad",
+            **git_source_provenance(),
+            "gate_artifact": str(gate_artifact) if args.run_mode == "confirmation" else None,
+            "gate_artifact_sha256": sha256(gate_artifact) if args.run_mode == "confirmation" else None,
+            "gate_artifact_created_unix": gate_data.get("created_unix") if gate_data is not None else None,
+            "gate_artifact_decision": gate_data.get("final_gate", {}).get("decision") if gate_data is not None else None,
+            "swiftllm_upstream_commit": git_revision(SWIFT_ROOT),
+            "swiftllm_research_diff_sha256": sha256(ROOT / "references/swiftllm-research.diff"),
+            "requirements_lock_sha256": sha256(ROOT / "requirements-lock.txt"),
         },
         "proxy": {
             "kind": "symmetric_weight_only_fake_quantization",
@@ -902,51 +1079,92 @@ def main() -> None:
             "torch_cuda": torch.version.cuda,
             "device": str(device),
             "device_name": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
-            "swiftllm_upstream_commit": git_revision(),
-            "swiftllm_research_diff_sha256": sha256(ROOT / "references/swiftllm-research.diff"),
-            "requirements_lock_sha256": sha256(ROOT / "requirements-lock.txt"),
             "datasets_version": __import__("datasets").__version__,
         },
         "model": {
             "path": str(model_path),
             "config": json.loads((model_path / "config.json").read_text()),
-            "files": [{"name": path.name, "bytes": path.stat().st_size, "sha256": sha256(path)} for path in sorted(model_path.iterdir()) if path.is_file() and path.suffix in {".json", ".safetensors"}],
+            "files": model_file_records(model_path),
         },
         "data": {
-            "calibration": {"dataset": "wikitext-2-raw-v1/train", "count": len(calibration), "seq_len": args.seq_len, "sample_ids": [row["sample_id"] for row in calibration]},
-            "heldout": {"dataset": "wikitext-2-raw-v1/validation", "count": len(heldout), "seq_len": args.seq_len, "sample_ids": [row["sample_id"] for row in heldout]},
-            "task": {"dataset": "Rowan/hellaswag/validation", "count": len(task), "seed": args.seed + 7, "metric": "teacher-forced multiple-choice accuracy"},
-            "limitation": "Counts are explicit CLI-selected samples; they are not a claim of benchmark-scale uncertainty. Increase counts for publication-level estimates.",
+            "calibration": calibration_data,
+            "heldout": heldout_data,
+            "search_uses_sample_ids": calibration_data["sample_ids"],
+            "validation_loaded_after_search": True,
+            "calibration_heldout_ids_disjoint": set(calibration_data["sample_ids"]).isdisjoint(set(heldout_data["sample_ids"])),
+            "limitation": "Wikitext is a language-quality proxy; this phase does not use a small HellaSwag subset as a decision criterion.",
         },
         "storage_accounting": {
             "manual_cases": manual_storage_cases(),
             "fixed_fp16_bits": fixed_bits,
             "uniform_profiles": {str(bits): uniform_profile(units, bits, fixed_fp16_bits=fixed_bits).storage(units) for bits in BITS},
-            "unit_shapes": [{"key": unit.key, "name": unit.name, "layer": unit.layer, "matrices": [matrix.__dict__ | {"numel": matrix.numel, "padded_in_features": matrix.padded_in_features, "scale_count": matrix.scale_count} for matrix in unit.matrices]} for unit in units],
+            "unit_shapes": [
+                {
+                    "key": unit.key,
+                    "name": unit.name,
+                    "layer": unit.layer,
+                    "matrices": [matrix.__dict__ | {"numel": matrix.numel, "padded_in_features": matrix.padded_in_features, "scale_count": matrix.scale_count} for matrix in unit.matrices],
+                }
+                for unit in units
+            ],
         },
-        "single_unit_sensitivity": single,
-        "policy_search": {
-            "candidate_generation": "single-unit calibration NLL deltas with exhaustive projection enumeration, greedy budgeted upgrades, V-first heuristic, and exact integer-budget DP",
-            "combined_calibration_best_profile": calibration_best["profile"],
-            "combined_calibration_best_structured_profile": calibration_structured["profile"],
-            "combined_calibration_metrics_are_used_for_selection": True,
-            "heldout_metrics_are_not_used_for_selection": True,
-            "additive_prediction_is_not_final_selection_evidence": True,
+        "w8_centered_marginals": {
+            "skipped_for_confirmation": args.skip_w8_marginals,
+            "background_profile": baseline.as_record(units),
+            "definition": "one unit changed from W8 while every other Q/K/V/O/FFN unit remains W8; actual combined calibration execution for W4 and FP16",
+            "records": single,
+            "all_units_measured": len(single) == len(units),
+            "measured_targets": [] if args.skip_w8_marginals else [4, 16],
         },
-        "policies": policy_results,
-        "query_oracle": query_oracle,
+        "projection_enumeration": {
+            "description": "exhaustive projection-only enumeration across all 3^5 = 243 assignments in exploration; skipped only for the gated 8B confirmation",
+            "optimizer_description": "exhaustive 3^5 enumeration (243 assignments)",
+            "total_assignments": len(projection_all),
+            "executed_assignments": len(projection_records),
+            "skipped_for_confirmation": args.skip_projection_enumeration,
+            "unique_signatures": len({row["profile"]["signature"] for row in projection_records}),
+            "budget_target_bits": target_storage,
+            "budget_tolerance_bits_for_close_bracket": projection_tolerance,
+            "feasible_count": len(feasible_projection),
+            "closely_bracketed_count": len(near_projection),
+            "all_feasible_and_near_budget_executed": not args.skip_projection_enumeration,
+            "assignment_cost_min_bits": min(projection_costs) if projection_costs else None,
+            "assignment_cost_max_bits": max(projection_costs) if projection_costs else None,
+            "evaluations": projection_records,
+        },
+        "interaction_aware_search": {
+            "starting_profile": baseline.as_record(units),
+            "candidate_generation": "bounded deterministic beam/coordinate search from W8; includes explicit feasible 8->4 plus compensating 8->16 moves and recomputes moves around accepted profiles",
+            "marginals_only_propose_moves": True,
+            "final_ranking_uses_actual_combined_calibration": True,
+            "ranking": "stable_rank_score from actual shard NLL deltas, then worst shard and shard dispersion; deterministic signature tie-break",
+            "evaluation_budget": args.search_evaluation_budget,
+            "new_unique_evaluations": search_new_evaluations,
+            "rounds": search_history,
+            "search_records": search_records,
+            "final_calibration_frontier": [row["profile"] for row in frontier],
+        },
+        "combined_candidate_evaluations": all_candidate_evaluations,
+        "heldout_frontier": frontier_results,
+        "final_gate": gate,
         "verification": {
-            "all_fp16_noop": fp16_noop,
-            "selection_uses_calibration_only": True,
-            "headline_uses_heldout": True,
-            "additive_model_is_candidate_generator_only": True,
-            "interaction_adaptation": "All candidate policies are re-executed as combined profiles on calibration and held-out data; additive predictions are not treated as quality evidence, and no native/router phase is opened after interaction failure.",
+            "reference_profile": "uniform_w8",
+            "calibration_reference_is_combined_uniform_w8": True,
+            "heldout_reference_is_combined_uniform_w8": True,
+            "heldout_not_used_for_search": True,
+            "all_candidates_have_actual_combined_calibration": True,
+            "exact_integer_storage_bits_and_bytes": True,
             "bootstrap_iterations": args.bootstrap_iterations,
-            "budgets_exact_only_when_total_bits_equal": True,
+            "search_budget_enforced": search_new_evaluations <= args.search_evaluation_budget,
+            "no_8b_run_before_gate": True,
+            "final_gate_decision_recorded": True,
+            "run_mode": args.run_mode,
+            "gate_artifact_required_for_confirmation": str(gate_artifact),
         },
     }
     output_path.write_text(json.dumps(result, indent=2) + "\n")
     print(f"wrote {output_path}")
+    print(json.dumps({"decision": gate["decision"], "frontier_profiles": len(frontier), "projection_assignments": len(projection_records)}, indent=2))
 
 
 if __name__ == "__main__":

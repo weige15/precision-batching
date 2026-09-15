@@ -1,23 +1,29 @@
-# Claim/evidence matrix
+# Claim/evidence matrix — final interaction-aware phase
 
-This matrix is the claim boundary for the current research phase. A claim is “confirmed” only when the raw artifact and the verifier cover it; sample-limited findings remain supported rather than universal.
+A claim is supported only when the raw artifact and verifier cover the actual
+procedure. The old additive-selected artifacts remain historical evidence with
+their claim narrowed accordingly.
 
-| Claim / uncertainty | Status | Evidence | Remaining limitation / next action |
+| Claim / uncertainty | Status | Evidence | Limitation / boundary |
 |---|---|---|---|
-| Pinned SwiftLLM source and untouched baseline are reproducible | Confirmed | `vendor/swiftLLM-upstream/UPSTREAM_COMMIT`, `references/swiftllm-research.diff`, `results/baseline/swiftllm_unmodified_1b.log`, `docs/baseline.md` | Clean-machine clone/build remains a host prerequisite |
-| Research metadata preserves default FP16 behavior and scheduler semantics | Confirmed for tested path | `tests/test_precision.py`, `results/baseline/noop-output-comparison.txt`, `results/baseline/swiftllm_precision_metadata_smoke.json` | No online mixed-profile serving trace; metadata remains an instrumentation seam |
-| Projection sensitivity is not uniform across Q/K/V/O/FFN layer units | Supported in checked proxy/sample | `results/sensitivity/llama32_1b_structured.json`, `results/sensitivity/llama31_8b_structured.json`, `single_unit_sensitivity` | Sensitivity depends on metric, data, quantizer, and model; confidence is sample-limited |
-| V is more sensitive than Q and K in the original Q/K/V observation | Supported, replicated in recorded phases | `results/sensitivity/llama32_1b_qkv_matrix.json`, `results/sensitivity/llama31_8b_qkv_matrix.json`, corrected table in `docs/feasibility-report.md` | Do **not** infer a fixed Q-vs-K ordering; weight projections are not KV-cache quantization |
-| A fixed Q>K or K>Q ordering is universal | Refuted by current evidence | 1B/8B prefill/decode table: Q/K ordering changes by model/phase | Treat Q/K ordering as unsupported until broader evidence exists |
-| FP16 projections pay quantization-scale overhead | Refuted / corrected | `scripts/structured_precision_experiment.py:Unit.storage`, manual cases, verifier, structured JSON `storage_accounting` | Native packed metadata/alignment still unknown |
-| Quantized storage accounting includes applicable known costs | Confirmed for modeled proxy representation | Exact payload padding, FP16 group scales, zero zero-points, fixed FP16 weights in structured JSON; `scripts/verify_artifacts.py` recomputes formulas | Packed headers/alignment and KV-cache bytes are outside this proxy ledger |
-| Every layer has Q/K/V/O/FFN sensitivity units at 4/8/16 | Confirmed | 80 units for 1B and 160 for 8B; verifier checks `expected_layers * 5` and all bits | FFN gate/up/down remain one block unit; separate FFN study is optional future work |
-| Calibration-derived allocation remains additive | Refuted for these combined profiles | `interaction_calibration` in both structured JSONs; measured-vs-predicted residual CIs are nonzero | Need interaction-aware search if structured work is revisited |
-| Structured layer-by-projection policy beats uniform at the same true storage budget | **Not demonstrated; current evidence is negative** | Held-out NLL tables in `docs/feasibility-report.md`; structured JSON policies and exact integer storage gaps | W8 mixed policies are slightly below uniform W8 and worse; native representation not tested |
-| Projection-only and layer-only baselines were evaluated | Confirmed | `policies` rows with kinds `projection_only` and `layer`; verifier requires both | Projection-only and layer-only selected uniform W8 on 1B; layer-only was worse on 8B |
-| Held-out quality is better than calibration-only proxy quality | Confirmed as evaluation separation | Wikitext train calibration vs validation held-out IDs, HellaSwag validation task rows, verifier disjointness/count checks | 8B has 8/16/16 samples; not publication-scale |
-| Task/generation-level quality is measured | Supported | HellaSwag teacher-forced multiple-choice accuracy and bootstrap intervals in every policy row | This is task scoring, not free generation; subsets are small and accuracy is flat |
-| Query-conditioned allocation has material, metric-consistent headroom over the best global profile | **No evidence** | `query_oracle` in both structured JSONs: favorable NLL reduction is ~0.17% (1B) and ~0.16% (8B), while NLL-selected logit-MSE is 13.99x and 8.83x higher | Oracle is only over executed profiles, but is favorable; the small metric-dependent headroom does not justify a router |
-| Low-bit fake-quantization timings imply speedup | Refuted / never claimed | Script/report explicitly mark tensors as FP16 after dequantization and timing as non-native | Native packed kernel benchmark would be a separate project |
-| Native W4/W8 kernels should receive a go | **No-go under the requested gate** | No defensible structured Pareto advantage in 1B exploration or 8B confirmation | Reconsider only after a new quality/storage result justifies the kernel work |
-| Query-aware precision continuous batching should receive a go | **No-go** | Only ~0.16–0.17% NLL oracle headroom and much worse NLL-selected logit MSE; scheduler has no precision branch | Keep scheduler, KV quantization, swapping, and router out of scope |
+| SwiftLLM source and baseline are pinned | Confirmed | `vendor/swiftLLM*/UPSTREAM_COMMIT`, baseline logs, `docs/baseline.md` | Clean-machine rebuild remains a host prerequisite |
+| Default FP16/no-op and scheduler semantics remain unchanged | Confirmed for tested path | Existing tests, baseline/no-op comparison, unchanged scheduler scope | No online mixed-profile serving trace |
+| Prior structured negative result was interaction-aware | **Corrected / refuted** | `docs/completion-audit.md`; old policies were selected from FP16-background additive risks | Old negative claim is only about those additive-selected candidates |
+| Every 1B Q/K/V/O/FFN unit has W8-centered W4/FP16 marginals | Confirmed | `results/sensitivity/llama32_1b_interaction_aware.json:w8_centered_marginals` | Fake-quant proxy only |
+| W8-centered margins include actual paired NLL/logit/KL effects | Confirmed | Per-shard and per-sample `calibration` records for 80×(W4,W16) profiles | Margins propose moves; they are not final objective |
+| Exact modeled weight storage is represented | Confirmed | Unit shape ledger, profile deltas, verifier recomputation | Native packed headers/alignment and KV cache are not modeled |
+| Calibration uses dispersed, non-overlapping random windows | Confirmed | Three train shards with deterministic seeds, starts, intervals, and verifier overlap check | Wikitext language proxy, not broad task evaluation |
+| Validation is unseen during search | Confirmed | Validation loaded after search; train/validation IDs disjoint; verifier checks search IDs | Held-out sample size remains finite |
+| Additive single-unit risk is a valid final objective | **Refuted for this proxy/search** | Actual combined-profile calibration ranking and previous interaction evidence | No universal statement about other quantizers |
+| Interaction-aware search was executed | Confirmed | `interaction_aware_search`: beam/coordinate rounds, paired moves, accepted anchors, 96-evaluation budget; verifier checks history and actual combined records | Bounded, not global search |
+| Marginals are only proposal inputs | Confirmed | `marginals_only_propose_moves=true`, actual-shard ranking, no additive objective field used for final selection | Proposal width bounds reachable neighborhoods |
+| All 243 projection assignments were actually executed on 1B | Confirmed | `projection_enumeration`: 243/243, 243 unique, each with combined calibration metrics | Requirement scoped to 1B exploration; 8B confirmation skips this sanity check |
+| Projection-only optimizer text is correct | Confirmed | Script/report/JSON/verifier say the corrected `3^5` expression |
+| A 1B structured Pareto signal exists in the proxy | Provisional only | Five 1B profiles have negative held-out paired NLL CIs and stable calibration | It required 8B confirmation; not a final claim |
+| 1B provisional gate opened 8B only after positive signal | Confirmed | 1B `final_gate=OPEN_8B_CONFIRMATION`; separate 8B `run_mode=confirmation` artifact | Confirmation uses smaller calibration set |
+| 8B confirms a repeatable advantage | **Not demonstrated** | `llama31_8b_interaction_aware.json`: 11 frontier profiles; best NLL CIs cross zero | 8B held-out set is 32 windows; no positive-confidence candidate |
+| Structured weight precision has a repeatable Pareto advantage | **No-go / closed** | 1B provisional signal failed 8B repeatability gate; final decision `NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION` | Only this symmetric fake-quant proxy and bounded search are closed |
+| HellaSwag supports the decision | Not used | New artifacts intentionally omit it as a criterion | Avoid small-subset decision making |
+| Native W4/W8 kernels should be implemented now | **No-go** | Final gate did not confirm a structured advantage | Reopen only after a future positive evidence phase |
+| Query routing or precision-aware batching should be implemented | **No-go / paused** | No multiple globally competitive profiles after 8B confirmation; scope flags false | Scheduler, KV quantization, swapping remain untouched |
+| Next direction should be KV-cache precision/serving behavior | Recommended | Final report and final gate next-direction field | Separate experiment required |

@@ -80,17 +80,19 @@ CUDA_VISIBLE_DEVICES=5 \
 
 The smoke output verifies exact repeated all-FP16 output, successful mixed-profile propagation through Q/K/V/O/FFN call sites, and a changed output for the opted-in eager proxy. It is not a serving-performance result. The final artifact-gate output is preserved in `results/baseline/artifact-verification.log`.
 
-## Structured model-level experiment
+## Final interaction-aware structured experiment
 
-The model-level experiment is intentionally separate from the scheduler. It uses Wikitext-2 train as calibration and validation as held-out text, plus a deterministic HellaSwag validation subset for teacher-forced multiple-choice accuracy. It measures 5 units per layer (Q/K/V/O/FFN), includes fixed FP16 parameters in its representation-aware storage ledger, and records exact profile assignments and bootstrap intervals:
+The model-level experiment is intentionally separate from the scheduler. The
+current evidence starts from uniform W8, measures every Q/K/V/O/FFN unit with
+W8-centered W4 and FP16 perturbations, executes actual combined profiles on
+three dispersed Wikitext train shards, and evaluates the final frontier on
+unseen dispersed validation windows. The 1B run exhaustively executes all
+`3^5 = 243` projection-only assignments. The gated 8B confirmation uses a
+bounded combined search only; it does not repeat the 1B-only exhaustive check.
 
-```bash
-MODEL=/path/to/local/llama-checkpoint
-CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/structured_precision_experiment.py \
-  --model-path "$MODEL" \
-  --output results/sensitivity/structured.json \
-  --device cuda:0 --calibration-samples 16 --heldout-samples 32 \
-  --task-samples 32 --seq-len 128 --batch-size 2 --bootstrap-iterations 1000
-```
-
-Use the checked-in JSONs and `docs/feasibility-report.md` for the exact 1B/8B counts. `scripts/verify_artifacts.py` independently recomputes every profile's bit ledger and checks calibration/held-out separation. The experiment is a FP16-after-dequantization numerical proxy; it does not measure native kernel speed or KV-cache compression.
+See `docs/feasibility-report.md` for the exact commands and decision, and use
+the checked-in `results/sensitivity/*_interaction_aware.json` artifacts. The
+verifier recomputes profile storage, summary/stability/bootstrap values, shard
+ID separation, combined execution coverage, staged gate provenance, and the
+1B projection count. The experiment is a FP16-after-dequantization numerical
+proxy; it does not measure native kernel speed or KV-cache compression.

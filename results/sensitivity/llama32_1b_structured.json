@@ -42245,7 +42245,7 @@
       "profile": {
         "name": "projection_only_budgeted",
         "kind": "projection_only",
-        "optimizer": "exhaustive 5^3 enumeration",
+        "optimizer": "exhaustive 3^5 enumeration (243 assignments)",
         "target_bits": 8,
         "unit_bits": {
           "layer_000/q": 8,
@@ -48534,7 +48534,7 @@
       {
         "name": "projection_only_budgeted",
         "kind": "projection_only",
-        "optimizer": "exhaustive 5^3 enumeration",
+        "optimizer": "exhaustive 3^5 enumeration (243 assignments)",
         "target_bits": 8,
         "unit_bits": {
           "layer_000/q": 8,

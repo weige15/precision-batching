@@ -6,9 +6,13 @@ test_mapping_rejects_unknown_fields (test_precision.PrecisionMetadataTests.test_
 test_request_carries_profile (test_precision.PrecisionMetadataTests.test_request_carries_profile) ... ok
 test_precision_metadata_does_not_change_fcfs_admission (test_precision.SchedulerSemanticsTests.test_precision_metadata_does_not_change_fcfs_admission) ... ok
 test_manual_representation_cases (test_structured_precision.StorageAccountingTests.test_manual_representation_cases) ... ok
+test_neighbor_generation_contains_compensating_pair (test_structured_precision.StorageAccountingTests.test_neighbor_generation_contains_compensating_pair) ... ok
 test_profile_cost_is_sum_of_unit_costs (test_structured_precision.StorageAccountingTests.test_profile_cost_is_sum_of_unit_costs) ... ok
+test_projection_enumeration_is_three_to_the_fifth (test_structured_precision.StorageAccountingTests.test_projection_enumeration_is_three_to_the_fifth) ... ok
+test_stability_requires_two_of_three_shards_and_tolerance (test_structured_precision.StorageAccountingTests.test_stability_requires_two_of_three_shards_and_tolerance) ... ok
+test_storage_delta_uses_exact_integer_bytes (test_structured_precision.StorageAccountingTests.test_storage_delta_uses_exact_integer_bytes) ... ok
 
 ----------------------------------------------------------------------
-Ran 9 tests in 0.005s
+Ran 13 tests in 0.009s
 
 OK
