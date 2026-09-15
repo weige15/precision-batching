@@ -78,6 +78,54 @@ def _fwd_kvcache_mgmt_decoding_kernel(
     tl.store(k_cache + offs_kvcache, tl.load(k + offs_kv))
     tl.store(v_cache + offs_kvcache, tl.load(v + offs_kv))
 
+def store_kvcache_pages(
+    k: torch.Tensor,
+    v: torch.Tensor,
+    block_table: torch.Tensor,
+    engine_config: EngineConfig,
+    infer_state: LlamaInferState,
+    cur_layer: int,
+    page_cache,
+):
+    """Write K/V into explicit page records for the research cache path.
+
+    This deliberately favors transparent ownership and correctness over a
+    fused kernel.  Each write preserves the page's current K/V formats, so a
+    demoted page can remain live while a request appends a token to it.
+    """
+    if infer_state.num_prefill_seqs > 0:
+        for batch_id in range(infer_state.num_prefill_seqs):
+            seq_id = int(infer_state.seq_ids[batch_id].item())
+            seq_start = int(infer_state.prefill_seq_start_locs[batch_id].item())
+            seq_len = int(infer_state.prefill_seq_lens[batch_id].item())
+            for block_id in range((seq_len + engine_config.block_size - 1) // engine_config.block_size):
+                physical_id = int(block_table[seq_id, block_id].item())
+                start = seq_start + block_id * engine_config.block_size
+                end = min(start + engine_config.block_size, seq_start + seq_len)
+                page_cache.write(
+                    physical_id,
+                    cur_layer,
+                    k[start:end].contiguous(),
+                    v[start:end].contiguous(),
+                )
+
+    if infer_state.num_decoding_seqs > 0:
+        for batch_id in range(infer_state.num_decoding_seqs):
+            seq_id = int(infer_state.seq_ids[infer_state.num_prefill_seqs + batch_id].item())
+            seq_len = int(infer_state.decoding_seq_lens[batch_id].item())
+            token_offset = (seq_len - 1) % engine_config.block_size
+            block_id = (seq_len - 1) // engine_config.block_size
+            physical_id = int(block_table[seq_id, block_id].item())
+            token_id = infer_state.num_prefill_tokens + batch_id
+            page_cache.write(
+                physical_id,
+                cur_layer,
+                k[token_id:token_id + 1].contiguous(),
+                v[token_id:token_id + 1].contiguous(),
+                token_offset=token_offset,
+            )
+
+
 def store_kvcache(
     k: torch.Tensor,
     v: torch.Tensor,

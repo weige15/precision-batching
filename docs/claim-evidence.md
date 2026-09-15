@@ -1,22 +1,44 @@
-# Claim/evidence matrix
+# Claim/evidence matrix — final interaction-aware phase
 
-This matrix is updated after each experiment. “Confirmed” means directly supported by a checked-in artifact or passing command; “supported” means observed in the stated local sample but not yet broad enough for a general claim; “blocked” means the required exact experiment has not been run.
+A claim is supported only when the raw artifact and verifier cover the actual
+procedure. The old additive-selected artifacts remain historical evidence with
+their claim narrowed accordingly.
 
-| Claim / uncertainty | Status | Evidence | Remaining limitation / next action |
+| Claim / uncertainty | Status | Evidence | Limitation / boundary |
 |---|---|---|---|
-| Upstream SwiftLLM is pinned and preserved | Confirmed | `vendor/swiftLLM-upstream/UPSTREAM_COMMIT`, `references/swiftllm-research.diff`, source clone and `git rev-parse` | Re-cloning is still required on a clean machine; no network lockfile for Git itself |
-| Unmodified SwiftLLM baseline runs locally | Confirmed | `results/baseline/swiftllm_unmodified_1b.log`; command in `docs/baseline.md` | Only Llama 3.2 1B was run through SwiftLLM; 8B SwiftLLM serving is not needed for the initial sensitivity gate |
-| Research metadata preserves default behavior | Confirmed for tested path | Exact output comparison of unmodified and no-op logs; `tests/test_precision.py`; `swiftllm_precision_metadata_smoke.json` | End-to-end online Ray/API test not run; run it before production use |
-| Default scheduler semantics are unchanged | Confirmed by source and unit test | `vendor/swiftLLM/swiftllm/server/scheduler.py` has no precision branch; `SchedulerSemanticsTests` | No mixed-profile online trace benchmark yet |
-| Separate per-request Q/K/V/O/FFN profile can be represented and reaches call sites | Confirmed | `precision.py`, `structs.py`, `infer_state.py`, `model.py`, transformer-layer call sites; metadata smoke output and tests | Eager proxy is intentionally not a production kernel |
-| The local eager proxy is a valid sensitivity instrument | Supported | `scripts/qkv_sensitivity.py`; 27 `{4,8,16}^3` profiles; FP16 control has zero error | It is symmetric groupwise weight fake quantization, not QAQ's KV-cache quantizer or AWQ |
-| Projection sensitivity differs by Q/K/V | Supported, replicated across two models | 1B and 8B JSON results: all-layer 4-bit-only perturbations show V > K > Q by aggregate logit MSE in the tested prompts (see `docs/feasibility-report.md`) | Small prompt samples and one quantizer; test additional seeds/tasks and true KV-cache quantization |
-| Sensitivity differs by layer | Supported | 1B 16-layer and 8B 32-layer one-projection layer sweeps; raw JSON results | Layer ranking may be model-, prompt-, and quantizer-dependent; no confidence intervals yet |
-| Sensitivity differs by query/prompt type | Supported but modest | Per-query and `by_prompt_type` records plus weighted equal-storage oracle choices in matrix JSON; max reduction is 2.65% (1B) and 0.013% (8B) in this sample | Current equal 4/8/16 profiles often have a clear global winner; need larger task-calibrated data and a better policy search |
-| Sensitivity differs between prefill and decode positions | Supported | Every query has separate prefill positions and paired one-token decode records | Only four reference decode tokens and reference-prefix pairing; long-context/many-step drift remains open |
-| Fixed profile vs query-specific oracle at comparable budget | Tested; only modest/unstable gain | `weighted_budget_oracle_comparison` uses actual Q/K/V parameter counts plus FP16 scale overhead; max reduction is 2.65% for 1B and 0.013% for 8B at an exactly equal weighted storage budget. `unweighted_sum_oracle_comparison` is retained as a non-memory-comparable diagnostic. | Oracle is offline and coarse; need larger data, task quality, and native storage accounting before concluding no query dependence |
-| Low-bit execution provides a speedup | **Not claimed / blocked** | Per-config eager timing is explicitly marked overhead only; no packed kernel | Requires native 4/8-bit kernels and a controlled throughput benchmark |
-| Native KV-cache quantization or dynamic CPU/GPU bit swapping is feasible | Blocked | SwiftLLM baseline has FP16 K/V cache; local AWQ checkpoint is incompatible with unmodified loader | Out of scope until projection/cache quality evidence and native kernels justify it |
-| QAQ's published KV-cache results are reproduced | Blocked | Primary PDF/code and exact claims documented in `docs/papers.md` | Reproducing LLaMA 2 7B task evaluation requires their datasets/model and is not necessary for the projection gate, but remains a separate task |
-| MorphServe's serving gains are reproduced | Blocked | Primary PDF and implementation scope documented in `docs/papers.md` | Requires its layer-swapping/KV-resizing system and workload traces; deliberately not implemented |
-| Strong go/no-go for native kernels and precision-aware scheduling | **Conditional go** | Cross-model structured Q/K/V and layer variation is evidence for a narrowly scoped next experiment; no query-oracle advantage yet | Go only to native microkernels + larger query-dependence study; no-go for full dynamic scheduler until native overhead/quality and query gain are measured |
+| SwiftLLM source and baseline are pinned | Confirmed | `vendor/swiftLLM*/UPSTREAM_COMMIT`, baseline logs, `docs/baseline.md` | Clean-machine rebuild remains a host prerequisite |
+| Default FP16/no-op and scheduler semantics remain unchanged | Confirmed for tested path | Existing tests, baseline/no-op comparison, unchanged scheduler scope | No online mixed-profile serving trace |
+| Prior structured negative result was interaction-aware | **Corrected / refuted** | `docs/completion-audit.md`; old policies were selected from FP16-background additive risks | Old negative claim is only about those additive-selected candidates |
+| Every 1B Q/K/V/O/FFN unit has W8-centered W4/FP16 marginals | Confirmed | `results/sensitivity/llama32_1b_interaction_aware.json:w8_centered_marginals` | Fake-quant proxy only |
+| W8-centered margins include actual paired NLL/logit/KL effects | Confirmed | Per-shard and per-sample `calibration` records for 80×(W4,W16) profiles | Margins propose moves; they are not final objective |
+| Exact modeled weight storage is represented | Confirmed | Unit shape ledger, profile deltas, verifier recomputation | Native packed headers/alignment and KV cache are not modeled |
+| Calibration uses dispersed, non-overlapping random windows | Confirmed | Three train shards with deterministic seeds, starts, intervals, and verifier overlap check | Wikitext language proxy, not broad task evaluation |
+| Validation is unseen during search | Confirmed | Validation loaded after search; train/validation IDs disjoint; verifier checks search IDs | Held-out sample size remains finite |
+| Additive single-unit risk is a valid final objective | **Refuted for this proxy/search** | Actual combined-profile calibration ranking and previous interaction evidence | No universal statement about other quantizers |
+| Interaction-aware search was executed | Confirmed | `interaction_aware_search`: beam/coordinate rounds, paired moves, accepted anchors, 96-evaluation budget; verifier checks history and actual combined records | Bounded, not global search |
+| Marginals are only proposal inputs | Confirmed | `marginals_only_propose_moves=true`, actual-shard ranking, no additive objective field used for final selection | Proposal width bounds reachable neighborhoods |
+| All 243 projection assignments were actually executed on 1B | Confirmed | `projection_enumeration`: 243/243, 243 unique, each with combined calibration metrics | Requirement scoped to 1B exploration; 8B confirmation skips this sanity check |
+| Projection-only optimizer text is correct | Confirmed | Script/report/JSON/verifier say the corrected `3^5` expression |
+| A 1B structured Pareto signal exists in the proxy | Provisional only | Five 1B profiles have negative held-out paired NLL CIs and stable calibration | It required 8B confirmation; not a final claim |
+| 1B provisional gate opened 8B only after positive signal | Confirmed | 1B `final_gate=OPEN_8B_CONFIRMATION`; separate 8B `run_mode=confirmation` artifact | Confirmation uses smaller calibration set |
+| 8B confirms a repeatable advantage | **Not demonstrated** | `llama31_8b_interaction_aware.json`: 11 frontier profiles; best NLL CIs cross zero | 8B held-out set is 32 windows; no positive-confidence candidate |
+| Structured weight precision has a repeatable Pareto advantage | **No-go / closed** | 1B provisional signal failed 8B repeatability gate; final decision `NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION` | Only this symmetric fake-quant proxy and bounded search are closed |
+| HellaSwag supports the decision | Not used | New artifacts intentionally omit it as a criterion | Avoid small-subset decision making |
+| Native W4/W8 kernels should be implemented now | **No-go** | Final gate did not confirm a structured advantage | Reopen only after a future positive evidence phase |
+| Query routing or precision-aware batching should be implemented | **No-go / paused** | No multiple globally competitive profiles after 8B confirmation; scope flags false | Scheduler, KV quantization, swapping remain untouched |
+| Next direction should be KV-cache precision/serving behavior | Recommended | Final report and final gate next-direction field | Separate experiment required |
+
+## Live KV-page precision phase
+
+| Claim / uncertainty | Status | Evidence | Limitation / boundary |
+|---|---|---|---|
+| SwiftLLM page abstraction supports FP16/INT8/INT4 | Confirmed | `vendor/swiftLLM/swiftllm/worker/kv_cache.py`, `docs/kv-page-format.md`, `tests/test_kv_cache.py` | One-tensor-per-page research allocator |
+| K/V format metadata is explicit at page granularity | Confirmed | `PagedKVCache.metadata_codes`, `KVPage.k_format/v_format`, verifier | K/V share a logical page but can differ in format |
+| Live demotion reclaims real memory without a steady-state FP16 shadow | Confirmed after synchronization | `kv_precision_mechanism.json` exact logical/`torch.cuda.memory_allocated` fields; verifier | Transient source is retained during async conversion until event completion |
+| Mixed-format attention is numerically correct | Confirmed | Explicit reconstruction test and model-backed quality traces | Current path is a PyTorch reference, not fused low-bit attention |
+| Conversion is fast enough by itself | Supported | 0.326--0.495 ms/page medians and 47--94 MiB/s synthetic rates | Per-page Python/allocator overhead; large concurrent arena not tested |
+| Conversion overlaps useful GPU work | Not demonstrated | CUDA event overlap traces are zero-error but hidden fraction is zero | Test uses concurrent matmuls, not a full serving workload |
+| Old-page INT8 quality is near-lossless | Supported but uncertain | 1B/8B paired forced-prefix traces, 100% top-1 for tested old-page fractions | One prompt/checkpoint probe per model and short generation |
+| INT4 quality is safe | No-go in tested proxy | Static/recent variants show NLL increases and top-1 mismatches | Other published outlier/attention-aware quantizers could differ |
+| Live demotion should drive a scheduler now | No-go | Mixed attention is about 3.7--6.9x slower at 50% compression at batch 8/context 1024; no useful overlap | A future packed fused kernel requires a new end-to-end gate |
+| MorphServe was outperformed | Not claimed | Report records MorphServe KVResizer boundary and no equivalent run | MorphServe resizes capacity rather than quantizing live KV pages |

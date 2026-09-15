@@ -1,94 +1,208 @@
-# Feasibility report: query-/Q/K/V-aware precision
+# Final interaction-aware structured weight-precision report
 
-## Executive decision
+## Decision
 
-**Conditional go for a narrowly scoped native-kernel feasibility phase; no-go for implementing a full precision-aware continuous-batching scheduler yet.**
+**B — close structured weight precision for this proxy and move the next
+research direction to KV-cache precision/serving behavior.**
 
-The local numerical proxy shows a repeatable and sizable **projection** asymmetry: in both Llama 3.2 1B and Llama 3.1 8B, all-layer 4-bit V-projection perturbation produces substantially more logit error than an otherwise identical Q-only or K-only perturbation. One-projection layer sweeps also show multi-fold layer variation. This is enough evidence to justify measuring a native kernel and a better policy objective.
+The required staged gate was followed:
 
-It is not enough to claim that query-specific scheduling will beat a fixed profile. In the tested matrix, the equal 8-bit profile was safer than heterogeneous profiles at the same coarse average budget, and the offline query oracle reported zero decode-MSE reduction at the tested 4/8/16 budget comparisons. The proxy is also not a low-bit execution kernel. A full runtime scheduler, KV-cache quantization, bit-plane swapping, and production INT4 implementation should remain deferred until native overhead and query-dependent quality gains are established.
+1. Llama 3.2 1B exploration found several W8-budget structured profiles with
+   negative paired held-out NLL differences and stable calibration behavior.
+   This opened the gated confirmation.
+2. Llama 3.1 8B confirmation found no candidate with a positive held-out
+   confidence signal. Its best apparent NLL improvements had bootstrap CIs
+   crossing zero. The confirmation therefore failed the repeatability gate.
+3. No native-kernel, scheduler, router, KV-cache, swapping, or serving-path
+   work is opened by this result.
 
-## Reproduction surface
+The result is negative for the tested symmetric groupwise fake-quantization
+proxy and search budget. It is not a claim that every quantizer or native
+format is impossible.
 
-The experiment is fully driven by:
+## Scope correction to the previous audit
+
+The previous structured run detected strong non-additive interaction, but its
+projection-only, layer-only, greedy layer-by-projection, and exact-budget DP
+profiles were chosen from additive single-unit risks measured with every other
+unit at FP16. Re-running those profiles as combined models did **not** make the
+search interaction-aware. Those results are preserved in:
+
+- `results/sensitivity/llama32_1b_structured.json`
+- `results/sensitivity/llama31_8b_structured.json`
+
+Their negative claim is narrowed to the specific additive-selected candidates
+that were tested. They are not evidence that an interaction-aware search was
+exhausted. The corrected experiment is recorded separately in:
+
+- `results/sensitivity/llama32_1b_interaction_aware.json`
+- `results/sensitivity/llama31_8b_interaction_aware.json`
+
+The optimizer description is explicitly **exhaustive 3^5 enumeration (243
+assignments)**, correcting the former reversed-exponent description.
+
+## Experimental procedure
+
+### W8-centered measurements
+
+For every Q, K, V, O, and per-layer FFN unit (gate + up + down together), the
+1B run starts from one full uniform-W8 model. It executes:
+
+- one profile changing only that unit W8 → W4;
+- one profile changing only that unit W8 → FP16;
+- a W8 record as the paired background control.
+
+All other units remain W8. Each measured profile records paired NLL, logit
+MSE/RMSE, KL, top-1 agreement, per-sample results, per-shard results, and the
+exact integer storage delta versus uniform W8. The single-unit records only
+propose search moves; they are not the final search objective.
+
+### Data separation
+
+Calibration uses deterministic randomized, evenly spaced, non-overlapping
+Wikitext-2 raw train windows:
+
+| run | calibration | held-out validation | calibration shards |
+|---|---:|---:|---:|
+| 1B exploration | 12 windows | 64 windows | 3 × 4 |
+| 8B confirmation | 6 windows | 32 windows | 3 × 2 |
+
+The validation windows are dispersed and non-overlapping within the validation
+split and are loaded only after the search has completed. Search sample IDs are
+verified to be calibration IDs and disjoint from validation IDs. HellaSwag is
+not used as a decision criterion in this phase.
+
+### Interaction-aware search
+
+Starting from uniform W8, the bounded deterministic beam/coordinate search:
+
+- generates feasible W8 → W4 downgrades and paired compensating W8 → FP16
+  upgrades;
+- recomputes neighborhoods around accepted profiles for subsequent rounds;
+- deduplicates profiles and enforces an explicit evaluation budget;
+- ranks candidates using actual combined-model calibration NLL across shards,
+  with worst-shard and dispersion tie-breaks;
+- uses W8-centered margins only to bound deterministic proposal order.
+
+The 1B search budget was 96 new combined profiles over three rounds with beam
+width 2. It also executed all 243 projection-only assignments, recording exact
+storage for each; 112 were at or below the W8 budget and 7 were within the
+declared 1% close-bracket band. The 8B confirmation intentionally skipped the
+1B-only exhaustive projection sanity check and repeated marginal sweep, using
+48 actual combined search evaluations instead.
+
+The final calibration frontier is the actual nondominated combined-profile
+frontier under the modeled W8 storage budget. Every surviving frontier profile
+is then evaluated directly against uniform W8 on held-out validation windows.
+
+### Storage model
+
+For each matrix, quantized storage counts input-channel padding, bit payload,
+and one FP16 symmetric scale per group of 128. FP16 counts direct 16-bit
+weights and no scale overhead. Fixed non-unit parameters (embeddings, LM head,
+and norms) remain FP16 and are included. Totals and deltas are exact integer
+bits and integer bytes; native packed headers/alignment are explicitly outside
+the proxy.
+
+## Results
+
+### Llama 3.2 1B exploration
+
+- Uniform W8: **12,110,036,992 bits / 1,513,754,624 bytes**.
+- Uniform W4: 8,217,722,880 bits / 1,027,215,360 bytes.
+- Uniform FP16: 19,773,030,400 bits / 2,471,628,800 bytes.
+- 80 W8-centered units measured at W4 and FP16.
+- 243/243 projection-only assignments executed as combined profiles.
+- 339 unique combined calibration profiles, 96 new search evaluations.
+- 23 final held-out frontier profiles, each directly paired to W8 over 64
+  validation windows.
+
+Five frontier search profiles passed the 1B provisional gate. A representative
+one downgraded `layer_004/v` and `layer_004/ffn` to W4, used 205,520,896 fewer
+modeled bits (25,690,112 fewer bytes), and had paired held-out NLL difference
+`-0.00421` with 95% bootstrap interval `[-0.00746, -0.00090]`. The calibration
+improvement was stable under the declared three-shard rule. This provisional
+signal was enough to open the 8B confirmation, but was not treated as final.
+
+### Llama 3.1 8B confirmation
+
+- Uniform W8: **73,522,020,352 bits / 9,190,252,544 bytes**.
+- 48 new actual combined search evaluations under the declared budget.
+- 11 held-out frontier profiles, each directly paired to W8 over 32 dispersed
+  validation windows.
+- No 8B candidate passed both the positive-confidence and stable-calibration
+  gate.
+
+The best apparent candidates were below W8 storage, and some were stable on
+calibration, but their held-out paired NLL confidence intervals crossed zero:
+
+| modeled storage delta vs W8 | paired NLL mean | 95% bootstrap CI |
+|---:|---:|---:|
+| -50,855,936 bits (-6,356,992 bytes) | -0.00227 | [-0.00558, 0.00105] |
+| -17,825,792 bits (-2,228,224 bytes) | -0.00212 | [-0.00555, 0.00130] |
+| -16,777,216 bits (-2,097,152 bytes) | -0.00251 | [-0.00594, 0.00078] |
+
+Because the upper confidence bound was not below zero, the 8B result does not
+confirm a repeatable Pareto advantage. The final artifact records
+`NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION` and the next direction as
+KV-cache precision/serving behavior.
+
+## Verification and reproduction
+
+The artifact verifier checks actual procedure, not only flags or strings:
+
+- W8-centered marginal coverage and one-unit profile structure;
+- exact profile storage and signed deltas in bits/bytes;
+- three-shard dispersed-window separation and held-out non-leakage;
+- actual combined calibration executions for every candidate;
+- all 243 projection assignments in the 1B exploration;
+- deterministic search history, deduplication, and budget;
+- paired held-out frontier metrics and bootstrap intervals;
+- staged 1B/8B gate decisions and confirmation ordering.
+
+Run:
 
 ```bash
-MODEL=/path/to/local/llama-checkpoint
-CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/qkv_sensitivity.py \
-  --model-path "$MODEL" \
-  --output results/sensitivity/run.json \
-  --max-prompts 8 --decode-tokens 4 --bits 4 8 16 --device cuda:0
+.venv/bin/python scripts/structured_precision_experiment.py --storage-self-test
+PYTHONPATH="$PWD/vendor/swiftLLM:$PWD/vendor/swiftLLM/csrc" \
+  .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python scripts/verify_artifacts.py
 ```
 
-For the checked-in runs:
+The recorded commands and output logs are the `*_interaction_aware.log` files
+next to the two JSON artifacts. The 1B exploration command was:
 
-- `results/sensitivity/llama32_1b_qkv_matrix.json`: 8 controlled prompts, 4 reference decode tokens, 27 all-layer profiles in `{4,8,16}^3`, 16-layer Llama 3.2 1B.
-- `results/sensitivity/llama32_1b_qkv_matrix_layer_sweep.json`: same prompts, plus 96 one-projection/one-layer profiles across 16 layers.
-- `results/sensitivity/llama31_8b_qkv_matrix.json`: 8 prompts, 4 decode tokens, 27 profiles, 32-layer Llama 3.1 8B.
-- `results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json`: same 8B sample, plus 192 one-projection/one-layer profiles across 32 layers.
+```bash
+CUDA_VISIBLE_DEVICES=3 .venv/bin/python scripts/structured_precision_experiment.py \
+  --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 \
+  --output results/sensitivity/llama32_1b_interaction_aware.json --device cuda:0 \
+  --calibration-shards 3 --calibration-samples-per-shard 4 \
+  --heldout-shards 4 --heldout-samples-per-shard 16 --batch-size 2 \
+  --search-evaluation-budget 96 --search-rounds 3 --beam-width 2 \
+  --proposal-width 8 --bootstrap-iterations 1000
+```
 
-Each JSON contains model file hashes, environment metadata, prompt records, per-position prefill/decode metrics, aggregate metrics, per-config elapsed time, and both unweighted diagnostic and weighted-budget oracle comparisons. Weighted storage bits use the actual Q/K/V parameter counts for the model's GQA shape plus one FP16 scale per 128-weight group; packed metadata and runtime overhead are not included. The sensitivity execution uses Hugging Face Llama modules with the shared proxy helper, not SwiftLLM's Triton/PagedAttention kernels; SwiftLLM is the serving baseline and metadata integration target. Decode comparisons feed the same reference continuation token to the candidate model, so they measure paired logit drift rather than confounding precision error with divergent sampled text.
+After that artifact's `OPEN_8B_CONFIRMATION` gate, the confirmation used a
+bounded actual search; it intentionally skipped the 1B-only exhaustive
+projection check and repeated marginal sweep:
 
-## Confirmed findings
+```bash
+CUDA_VISIBLE_DEVICES=3 .venv/bin/python scripts/structured_precision_experiment.py \
+  --run-mode confirmation --skip-projection-enumeration --skip-w8-marginals \
+  --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b \
+  --output results/sensitivity/llama31_8b_interaction_aware.json --device cuda:0 \
+  --calibration-shards 3 --calibration-samples-per-shard 2 \
+  --heldout-shards 4 --heldout-samples-per-shard 8 --batch-size 1 \
+  --search-evaluation-budget 48 --search-rounds 2 --beam-width 2 \
+  --proposal-width 8 --bootstrap-iterations 1000
+```
 
-1. The unmodified pinned SwiftLLM baseline runs on the local Llama 3.2 1B checkpoint. On a free RTX 3090, the upstream offline example reported 37,975 GPU KV blocks and a 4.78-GB profiled runtime peak. Output is preserved in `results/baseline/swiftllm_unmodified_1b.log`; earlier runs with a competing GPU process were discarded from this baseline.
-2. The research fork's all-FP16/no-op output matches the unmodified output exactly after excluding the model-creation-time line. The sensitivity JSONs' FP16 controls have an explicitly defined exact tolerance (`max_abs_logit_error <= 0.0`, zero top-1 mismatches); unit tests and the metadata smoke test pass.
-3. The scheduler remains length/block/batch based. Precision metadata is carried beside the request and is not used by `Scheduler.get_next_batch`.
-4. `PrecisionProfile` represents separate Q/K/V/O/FFN bits per request. The default is all FP16. The metadata is passed through `Engine` → `LlamaModel.forward` → `LlamaInferState` → Q/K/V/O/FFN projection call sites.
-5. The local available MorphServe checkpoint is AWQ W4 and cannot be loaded by the pinned ordinary SwiftLLM weight loader. No unsupported conversion was silently attempted.
+The experiment remains an offline fake-quant proxy: do not infer native speedup
+or serving-memory behavior from it.
 
-## Supported but sample-limited findings
+## Explicitly deferred work
 
-### Projection asymmetry
-
-Aggregate all-layer 4-bit-only perturbations (other two projections at FP16) are:
-
-| model / phase | Q only MSE | K only MSE | V only MSE | V/Q |
-|---|---:|---:|---:|---:|
-| Llama 3.2 1B / prefill | 0.01902 | 0.01799 | 0.08432 | 4.43x |
-| Llama 3.2 1B / decode | 0.04160 | 0.02545 | 0.13605 | 3.27x |
-| Llama 3.1 8B / prefill | 0.04311 | 0.05282 | 0.14014 | 3.25x |
-| Llama 3.1 8B / decode | 0.01476 | 0.01134 | 0.07989 | 5.41x |
-
-This is consistent with a useful structured precision hypothesis, but the direction is not identical to QAQ's key/value **cache** result because this experiment perturbs projection weights, not cached vectors. It should not be overinterpreted as a universal K/V ordering.
-
-At 4-bit all-layer perturbation, prefill top-1 match was 93.0% for 1B and 96.2% for 8B; decode top-1 match was 96.9% and 93.8%, respectively, over the recorded position samples. At 8-bit all three projections, decode logit MSE fell to `7.53e-4` (1B) and `4.20e-4` (8B), with 100% decode top-1 match in these samples.
-
-### Layer structure
-
-The one-projection/one-layer 4-bit decode-MSE ranges were:
-
-| model | Q range | K range | V range |
-|---|---:|---:|---:|
-| Llama 3.2 1B | 0.000985–0.00522 | 0.000937–0.00346 | 0.00445–0.01969 |
-| Llama 3.1 8B | 0.000079–0.00118 | 0.000085–0.000645 | 0.00134–0.01102 |
-
-The layer sweep therefore supports nonuniform layer allocation as a worthwhile next question. It does not yet provide confidence intervals or a robust transferable layer order.
-
-### Prefill/decode and overhead
-
-The harness records both phases. On the checked-in samples, decode drift is sometimes larger (1B) and sometimes smaller (8B) than prefill drift, so position phase should remain an explicit policy dimension rather than an assumption. Four decode steps are insufficient to make a long-generation claim.
-
-Per-config elapsed time includes model projection/attention execution but excludes the preceding weight mutation. For the current eight-prompt runs, all-layer `(4,4,4)` versus `(16,16,16)` took 0.919 s versus 0.828 s for the 1B sample and 1.481 s versus 1.433 s for the 8B sample. These are **eager fake-quantization proxy overhead measurements only**, not low-bit speedup measurements; the candidate weights are dequantized FP16 tensors and use ordinary PyTorch kernels.
-
-### Query-specific oracle
-
-The JSON `unweighted_fixed_oracle_comparison` chooses the lowest decode logit MSE independently for each prompt among tested profiles within ±2/3 **unweighted** bit of the fixed all-equal profile. This is a diagnostic, not a memory comparison. At fixed 4, 8, and 16 unweighted-bit comparisons, the recorded oracle reduction is 0.0 for both models because the equal profile is the only strong choice at those coarse budgets.
-
-The `weighted_budget_oracle_comparison` holds weighted Q+K+V storage bits constant and compares the best single profile with a per-prompt oracle. It finds a modest 2.65% reduction for Llama 3.2 1B at 6.79 weighted storage bits (swapping K/V allocation) but only 0.013% for Llama 3.1 8B at the same weighted budget in the full eight-prompt matrix. The separate unweighted-sum diagnostic can show larger differences (1.19% for 1B and 2.73% for 8B), but those are not memory-comparable and are not used for the go/no-go decision. This is a deliberately favorable offline oracle, not a realizable runtime scheduler, and the small sample/metric effect is not yet enough to justify dynamic scheduling.
-
-## Blocked questions
-
-- Native packed INT4/INT8 Q/K/V kernels and their actual memory/latency behavior are not implemented.
-- The eager proxy does not model activation quantization, AWQ scales, kernel packing, or hardware-specific accumulation.
-- QAQ's cache quantization policy is not reproduced on LLaMA 2 tasks; this work only uses the primary paper/code to define the cache-vs-projection distinction and research hypotheses.
-- MorphServe's dynamic layer swapping and KVResizer are not reproduced; the local study is intentionally upstream-compatible and stops before those systems features.
-- No online mixed-profile continuous-batching trace has been run.
-- Prompt count, task coverage, decode length, and random-seed coverage are too small for a general quality claim.
-
-## Recommended next iteration
-
-1. Implement a single native or library-backed W8 projection microkernel with the same group scale convention and compare quality and wall time against this proxy.
-2. Expand the paired evaluation to a calibrated QAQ-style KV-cache experiment and task-level metrics, with enough prompts for confidence intervals.
-3. Revisit query-specific allocation using a richer budget grid and a quality metric tied to next-token loss/task accuracy; retain the zero-gain oracle result as a baseline.
-4. Only if native overhead is competitive and the larger oracle study demonstrates a material quality/memory advantage, prototype a scheduler policy. Do not add dynamic KV-cache compression, CPU/GPU bit swapping, or production kernels before those gates pass.
+Do not implement native W4/W8 kernels, query routing, precision-aware
+scheduling, KV-cache quantization, swapping, or serving-path optimization as a
+consequence of this experiment. Query-specific oracle work remains paused
+because no multiple globally competitive profiles survived the 8B gate.

@@ -1,3 +1,9 @@
+test_append_requantizes_in_place_without_changing_format (test_kv_cache.KVPageTests.test_append_requantizes_in_place_without_changing_format) ... ok
+test_compressed_default_writes_without_fp16_shadow (test_kv_cache.KVPageTests.test_compressed_default_writes_without_fp16_shadow) ... ok
+test_fp16_int8_int4_round_trip_and_exact_reclamation (test_kv_cache.KVPageTests.test_fp16_int8_int4_round_trip_and_exact_reclamation) ... ok
+test_invalid_async_components_are_rejected (test_kv_cache.KVPageTests.test_invalid_async_components_are_rejected) ... ok
+test_k_only_and_v_only_formats_are_explicit (test_kv_cache.KVPageTests.test_k_only_and_v_only_formats_are_explicit) ... ok
+test_mixed_format_attention_matches_explicit_page_reference (test_kv_cache.KVPageTests.test_mixed_format_attention_matches_explicit_page_reference) ... ok
 test_default_profile_is_all_fp16 (test_precision.PrecisionMetadataTests.test_default_profile_is_all_fp16) ... ok
 test_eager_proxy_supports_request_specific_bits (test_precision.PrecisionMetadataTests.test_eager_proxy_supports_request_specific_bits) ... ok
 test_fp16_linear_matches_legacy_operation (test_precision.PrecisionMetadataTests.test_fp16_linear_matches_legacy_operation) ... ok
@@ -13,6 +19,6 @@ test_stability_requires_two_of_three_shards_and_tolerance (test_structured_preci
 test_storage_delta_uses_exact_integer_bytes (test_structured_precision.StorageAccountingTests.test_storage_delta_uses_exact_integer_bytes) ... ok
 
 ----------------------------------------------------------------------
-Ran 13 tests in 0.009s
+Ran 19 tests in 0.022s
 
 OK

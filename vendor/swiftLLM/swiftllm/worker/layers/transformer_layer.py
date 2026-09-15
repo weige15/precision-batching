@@ -10,7 +10,8 @@ from swiftllm.worker.kernels.linear import linear
 from swiftllm.worker.kernels.rmsnorm import fused_add_rmsnorm_inplace
 from swiftllm.worker.kernels.rotary_emb import rotary_embedding_inplace
 from swiftllm.worker.kernels.paged_attn import paged_attention
-from swiftllm.worker.kernels.kvcache_mgmt import store_kvcache
+from swiftllm.worker.kernels.kvcache_mgmt import store_kvcache, store_kvcache_pages
+from swiftllm.worker.kv_cache import PagedKVCache, page_attention_for_layer
 from swiftllm.worker.kernels.silu_and_mul import silu_and_mul_inplace
 
 class LlamaTransformerLayer:
@@ -36,6 +37,7 @@ class LlamaTransformerLayer:
         v_cache: torch.Tensor,
         block_table: torch.Tensor,
         infer_state: LlamaInferState,
+        page_kv_cache: PagedKVCache | None = None,
     ) -> torch.Tensor:
         # (fused) Add last layer's residual, and perform RMSNorm
         # Before: input_embds is the output of the last FFN block, and residual_buf
@@ -84,15 +86,21 @@ class LlamaTransformerLayer:
         )
 
         if not infer_state.ignore_kvcache:
-            store_kvcache(
-                k, v,
-                k_cache, v_cache,
-                block_table,
-                self.model_config,
-                self.engine_config,
-                infer_state,
-                self.layer_id
-            )
+            if page_kv_cache is None:
+                store_kvcache(
+                    k, v,
+                    k_cache, v_cache,
+                    block_table,
+                    self.model_config,
+                    self.engine_config,
+                    infer_state,
+                    self.layer_id
+                )
+            else:
+                store_kvcache_pages(
+                    k, v, block_table, self.engine_config,
+                    infer_state, self.layer_id, page_kv_cache,
+                )
         store_kvcache_event = torch.cuda.Event()
         store_kvcache_event.record()
 
@@ -120,13 +128,23 @@ class LlamaTransformerLayer:
             assert not infer_state.ignore_kvcache
             with torch.cuda.stream(self.decoding_piggyback_stream):
                 torch.cuda.current_stream().wait_event(store_kvcache_event)
-                paged_attention(
-                    q[infer_state.num_prefill_tokens:, :, :],
-                    k_cache, v_cache, block_table,
-                    self.model_config, self.engine_config, infer_state,
-                    self.layer_id,
-                    o[infer_state.num_prefill_tokens:, :],
-                )
+                if page_kv_cache is None:
+                    paged_attention(
+                        q[infer_state.num_prefill_tokens:, :, :],
+                        k_cache, v_cache, block_table,
+                        self.model_config, self.engine_config, infer_state,
+                        self.layer_id,
+                        o[infer_state.num_prefill_tokens:, :],
+                    )
+                else:
+                    page_attention_for_layer(
+                        q[infer_state.num_prefill_tokens:, :, :],
+                        page_kv_cache, block_table,
+                        infer_state.seq_ids[infer_state.num_prefill_seqs:],
+                        infer_state.decoding_seq_lens,
+                        self.model_config, self.engine_config, self.layer_id,
+                        o[infer_state.num_prefill_tokens:, :],
+                    )
                 event = torch.cuda.Event()
                 event.record()
             torch.cuda.default_stream().wait_event(event)

@@ -1,0 +1,8 @@
+running build_ext
+/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/cpp_extension.py:495: UserWarning: Attempted to use ninja as the BuildExtension backend but we could not find ninja.. Falling back to using the slow distutils backend.
+  warnings.warn(msg.format('we could not find ninja.'))
+/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/cpp_extension.py:414: UserWarning: The detected CUDA version (12.4) has a minor version mismatch with the version that was used to compile PyTorch (12.1). Most likely this shouldn't be a problem.
+  warnings.warn(CUDA_MISMATCH_WARN.format(cuda_str_version, torch.version.cuda))
+/nfs/home/s314511048/precision-batching/.venv/lib/python3.12/site-packages/torch/utils/cpp_extension.py:424: UserWarning: There are no x86_64-linux-gnu-g++ version bounds defined for CUDA version 12.4
+  warnings.warn(f'There are no {compiler_name} version bounds defined for CUDA version {cuda_str_version}')
+-rwxrwxr-x 1 s314511048 s314511048 11M Sep 15 18:18 quant_cuda.cpython-312-x86_64-linux-gnu.so

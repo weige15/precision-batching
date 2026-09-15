@@ -47,6 +47,18 @@
       "output": "results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json"
     },
     {
+      "name": "structured_precision_llama32_1b",
+      "cuda_visible_devices": "5",
+      "command": "CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/structured_precision_experiment.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 --output results/sensitivity/llama32_1b_structured.json --device cuda:0 --calibration-samples 16 --heldout-samples 32 --task-samples 32 --seq-len 128 --batch-size 2 --bootstrap-iterations 1000",
+      "output": "results/sensitivity/llama32_1b_structured.json"
+    },
+    {
+      "name": "structured_precision_llama31_8b",
+      "cuda_visible_devices": "5",
+      "command": "CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/structured_precision_experiment.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b --output results/sensitivity/llama31_8b_structured.json --device cuda:0 --calibration-samples 8 --heldout-samples 16 --task-samples 16 --seq-len 128 --batch-size 1 --bootstrap-iterations 1000",
+      "output": "results/sensitivity/llama31_8b_structured.json"
+    },
+    {
       "name": "unit_tests",
       "cuda_visible_devices": "none",
       "command": "PYTHONPATH=\"$PWD/vendor/swiftLLM:$PWD/vendor/swiftLLM/csrc\" .venv/bin/python -m unittest discover -s tests -v",
@@ -56,7 +68,20 @@
       "name": "artifact_verifier",
       "cuda_visible_devices": "none",
       "command": "PYTHONPATH= .venv/bin/python scripts/verify_artifacts.py",
-      "output": "stdout (pass recorded in this manifest's audit run)"
+      "output": "results/baseline/artifact-verification.log"
+    },
+    {
+      "name": "interaction_aware_structured_llama32_1b",
+      "cuda_visible_devices": "3",
+      "command": "CUDA_VISIBLE_DEVICES=3 .venv/bin/python scripts/structured_precision_experiment.py --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6 --output results/sensitivity/llama32_1b_interaction_aware.json --device cuda:0 --calibration-shards 3 --calibration-samples-per-shard 4 --heldout-shards 4 --heldout-samples-per-shard 16 --seq-len 128 --batch-size 2 --search-evaluation-budget 96 --search-rounds 3 --beam-width 2 --proposal-width 8 --bootstrap-iterations 1000",
+      "output": "results/sensitivity/llama32_1b_interaction_aware.json"
+    },
+    {
+      "name": "gated_interaction_aware_confirmation_llama31_8b",
+      "cuda_visible_devices": "3",
+      "command": "CUDA_VISIBLE_DEVICES=3 .venv/bin/python scripts/structured_precision_experiment.py --run-mode confirmation --skip-projection-enumeration --skip-w8-marginals --model-path /nfs/home/s314511048/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b --output results/sensitivity/llama31_8b_interaction_aware.json --device cuda:0 --calibration-shards 3 --calibration-samples-per-shard 2 --heldout-shards 4 --heldout-samples-per-shard 8 --seq-len 128 --batch-size 1 --search-evaluation-budget 48 --search-rounds 2 --beam-width 2 --proposal-width 8 --bootstrap-iterations 1000",
+      "output": "results/sensitivity/llama31_8b_interaction_aware.json",
+      "gate": "results/sensitivity/llama32_1b_interaction_aware.json:OPEN_8B_CONFIRMATION"
     }
   ]
 }

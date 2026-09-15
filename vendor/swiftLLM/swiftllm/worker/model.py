@@ -7,6 +7,7 @@ from swiftllm.engine_config import EngineConfig
 from swiftllm.model_config import LlamaModelConfig
 from swiftllm.worker.weight import load_weights
 from swiftllm.worker.block_manager import BlockManager
+from swiftllm.worker.kv_cache import PagedKVCache
 from swiftllm.utils import GB
 from swiftllm.precision import PrecisionProfile
 import swiftllm_c
@@ -56,6 +57,7 @@ class LlamaModel:
         self.num_blocks = None
         self.k_cache = self.v_cache = None
         self.k_swap = self.v_swap = None
+        self.page_kv_cache: PagedKVCache | None = None
 
         # Block manager
         self.cpu_block_manager = self.gpu_block_manager = None
@@ -135,29 +137,42 @@ class LlamaModel:
     def init_kvcache_and_swap(self, num_blocks: int):
         self.num_blocks = num_blocks
 
-        # Initialize KV cache
-        kvcache_shape = (
-            self.num_blocks,
-            self.model_config.num_layers,
-            self.model_config.num_kv_heads,
-            self.engine_config.block_size,
-            self.model_config.head_dim
-        )
-        # Here we use torch.zeros instead of torch.empty, since that torch.empty
-        # has the possibility to contain NaNs, which will cause the model to output NaNs.
-        self.k_cache = torch.zeros(kvcache_shape, dtype=torch.float16, device="cuda")
-        self.v_cache = torch.zeros(kvcache_shape, dtype=torch.float16, device="cuda")
+        if self.engine_config.kv_page_format == "dense_fp16":
+            # Here we use torch.zeros instead of torch.empty, since that torch.empty
+            # has the possibility to contain NaNs, which will cause the model to output NaNs.
+            kvcache_shape = (
+                self.num_blocks,
+                self.model_config.num_layers,
+                self.model_config.num_kv_heads,
+                self.engine_config.block_size,
+                self.model_config.head_dim
+            )
+            self.k_cache = torch.zeros(kvcache_shape, dtype=torch.float16, device="cuda")
+            self.v_cache = torch.zeros(kvcache_shape, dtype=torch.float16, device="cuda")
+            self.page_kv_cache = None
 
-        # Initialize KV swap space
-        kvswap_shape = (
-            self.engine_config.num_cpu_blocks,
-            self.model_config.num_layers,
-            self.model_config.num_kv_heads,
-            self.engine_config.block_size,
-            self.model_config.head_dim
-        )
-        self.k_swap = torch.zeros(kvswap_shape, dtype=torch.float16, device="cpu")
-        self.v_swap = torch.zeros(kvswap_shape, dtype=torch.float16, device="cpu")
+            # Initialize the unchanged FP16 CPU swap space.
+            kvswap_shape = (
+                self.engine_config.num_cpu_blocks,
+                self.model_config.num_layers,
+                self.model_config.num_kv_heads,
+                self.engine_config.block_size,
+                self.model_config.head_dim
+            )
+            self.k_swap = torch.zeros(kvswap_shape, dtype=torch.float16, device="cpu")
+            self.v_swap = torch.zeros(kvswap_shape, dtype=torch.float16, device="cpu")
+        else:
+            self.k_cache = self.v_cache = None
+            self.k_swap = self.v_swap = None
+            self.page_kv_cache = PagedKVCache(
+                self.num_blocks,
+                self.model_config.num_layers,
+                self.model_config.num_kv_heads,
+                self.engine_config.block_size,
+                self.model_config.head_dim,
+                "cuda",
+                default_format=self.engine_config.kv_page_format,
+            )
 
         # Initialize block manager
         self.gpu_block_manager = BlockManager(
@@ -230,6 +245,7 @@ class LlamaModel:
         self,
         input_ids: torch.Tensor,    # [total_token_num]
         infer_state: LlamaInferState,
+        return_logits: bool = False,
     ) -> torch.Tensor:
         """
         Run a forward pass of the LlamaModel.
@@ -244,9 +260,10 @@ class LlamaModel:
                 self.v_cache,
                 self.gpu_block_manager.block_table if not infer_state.ignore_kvcache else None,
                 infer_state,
+                self.page_kv_cache,
             )
         input_embds += residual_buf
-        output_tokens = self.post_layer.forward(input_embds, infer_state)
+        output_tokens = self.post_layer.forward(input_embds, infer_state, return_logits=return_logits)
         return output_tokens
     
     @torch.inference_mode()
@@ -257,6 +274,7 @@ class LlamaModel:
         decoding_seq_lens_list: list[int], # [num_decoding_seqs]
         ignore_kvcache: bool = False,   # Skip actions related to kv cache, useful when profiling the number of kv blocks
         precision_profiles: list[PrecisionProfile] | None = None,
+        return_logits: bool = False,
     ) -> list[int]:
         """
         Run a forward pass of the LlamaModel.
@@ -372,16 +390,39 @@ class LlamaModel:
             token_request_ids = token_request_ids,
         )
 
-        return self._forward(
+        output = self._forward(
             torch.tensor(flattened_input_ids, dtype=torch.int32, device="cuda"),
-            infer_state
-        ).tolist()
+            infer_state,
+            return_logits=return_logits,
+        )
+        return output if return_logits else output.tolist()
+
+    def demote_kv_pages(
+        self,
+        page_keys: list[tuple[int, int]],
+        target_format: str,
+        components=("k", "v"),
+    ):
+        """Explicit control-plane hook for measured live-page demotion."""
+        if self.page_kv_cache is None:
+            raise RuntimeError("live page demotion requires --kv-page-format fp16/int8/int4")
+        return [
+            self.page_kv_cache.demote_page(block_id, layer_id, target_format, components)
+            for block_id, layer_id in page_keys
+        ]
+
+    def kv_storage_summary(self):
+        if self.page_kv_cache is None:
+            return {"mode": "dense_fp16", "allocated_bytes": self.k_cache.numel() * self.k_cache.element_size() * 2}
+        return self.page_kv_cache.storage_summary()
 
     def _swap(
         self,
         seq_ids_list: list[int],
         is_swap_in: bool
     ):
+        if self.page_kv_cache is not None:
+            raise RuntimeError("page-store mode deliberately does not implement CPU/GPU swapping")
         src_block_manager = self.cpu_block_manager if is_swap_in else self.gpu_block_manager
         dst_block_manager = self.gpu_block_manager if is_swap_in else self.cpu_block_manager
         seq_ids = torch.tensor(seq_ids_list, dtype=torch.int32, device="cuda")
@@ -423,5 +464,11 @@ class LlamaModel:
         Free the resources of the specified sequences.
         """
         seq_ids = torch.tensor(seq_ids_list, dtype=torch.int32, device="cuda")
+        if self.page_kv_cache is not None:
+            block_ids = []
+            for seq_id in seq_ids_list:
+                count = int(self.gpu_block_manager.num_seq_allocated_blocks[seq_id].item())
+                block_ids.extend(self.gpu_block_manager.block_table[seq_id, :count].tolist())
+            self.page_kv_cache.free_blocks(block_ids)
         self.gpu_block_manager.free_blocks_for_seqs(seq_ids)
         self.cpu_block_manager.free_blocks_for_seqs(seq_ids)

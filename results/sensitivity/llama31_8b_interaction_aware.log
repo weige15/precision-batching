@@ -1,0 +1,70 @@
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.78s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.66s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:04<00:01,  1.59s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.10s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.30s/it]
+Token indices sequence length is longer than the specified maximum sequence length for this model (2435022 > 131072). Running this sequence through the model will result in indexing errors
+building uniform-W8 calibration reference
+skipping repeated W8-centered marginal sweep for the gated confirmation; using deterministic structural move proposals
+skipping 1B-only projection enumeration for the gated 8B confirmation
+interaction search round=0 eval=1/48 paired:layer_000/q->4,layer_030/v->16
+interaction search round=0 eval=2/48 paired:layer_000/q->4,layer_031/k->16
+interaction search round=0 eval=3/48 paired:layer_000/q->4,layer_031/v->16
+interaction search round=0 eval=4/48 coordinate:layer_000/q->4
+interaction search round=0 eval=5/48 coordinate:layer_000/k->4
+interaction search round=0 eval=6/48 coordinate:layer_000/v->4
+interaction search round=0 eval=7/48 paired:layer_000/o->4,layer_030/v->16
+interaction search round=0 eval=8/48 paired:layer_000/o->4,layer_031/k->16
+interaction search round=0 eval=9/48 paired:layer_000/o->4,layer_031/v->16
+interaction search round=0 eval=10/48 coordinate:layer_000/o->4
+interaction search round=0 eval=11/48 paired:layer_000/ffn->4,layer_030/v->16
+interaction search round=0 eval=12/48 paired:layer_000/ffn->4,layer_030/o->16
+interaction search round=0 eval=13/48 paired:layer_000/ffn->4,layer_031/q->16
+interaction search round=0 eval=14/48 paired:layer_000/ffn->4,layer_031/k->16
+interaction search round=0 eval=15/48 paired:layer_000/ffn->4,layer_031/v->16
+interaction search round=0 eval=16/48 paired:layer_000/ffn->4,layer_031/o->16
+interaction search round=0 eval=17/48 coordinate:layer_000/ffn->4
+interaction search round=0 eval=18/48 paired:layer_001/q->4,layer_030/v->16
+interaction search round=0 eval=19/48 paired:layer_001/q->4,layer_031/k->16
+interaction search round=0 eval=20/48 paired:layer_001/q->4,layer_031/v->16
+interaction search round=0 eval=21/48 coordinate:layer_001/q->4
+interaction search round=0 eval=22/48 coordinate:layer_001/k->4
+interaction search round=0 eval=23/48 coordinate:layer_001/v->4
+interaction search round=1 eval=24/48 paired:layer_000/k->4,layer_030/v->16
+interaction search round=1 eval=25/48 paired:layer_000/k->4,layer_031/k->16
+interaction search round=1 eval=26/48 coordinate:layer_000/k->4
+interaction search round=1 eval=27/48 paired:layer_000/v->4,layer_030/v->16
+interaction search round=1 eval=28/48 paired:layer_000/v->4,layer_031/k->16
+interaction search round=1 eval=29/48 coordinate:layer_000/v->4
+interaction search round=1 eval=30/48 paired:layer_000/o->4,layer_030/v->16
+interaction search round=1 eval=31/48 paired:layer_000/o->4,layer_031/k->16
+interaction search round=1 eval=32/48 coordinate:layer_000/o->4
+interaction search round=1 eval=33/48 paired:layer_000/ffn->4,layer_030/v->16
+interaction search round=1 eval=34/48 paired:layer_000/ffn->4,layer_030/o->16
+interaction search round=1 eval=35/48 paired:layer_000/ffn->4,layer_031/q->16
+interaction search round=1 eval=36/48 paired:layer_000/ffn->4,layer_031/k->16
+interaction search round=1 eval=37/48 paired:layer_000/ffn->4,layer_031/o->16
+interaction search round=1 eval=38/48 coordinate:layer_000/ffn->4
+interaction search round=1 eval=39/48 paired:layer_001/q->4,layer_030/v->16
+interaction search round=1 eval=40/48 paired:layer_001/q->4,layer_031/k->16
+interaction search round=1 eval=41/48 coordinate:layer_001/q->4
+interaction search round=1 eval=42/48 paired:layer_001/k->4,layer_030/v->16
+interaction search round=1 eval=43/48 paired:layer_001/k->4,layer_031/k->16
+interaction search round=1 eval=44/48 coordinate:layer_001/k->4
+interaction search round=1 eval=45/48 paired:layer_001/v->4,layer_030/v->16
+interaction search round=1 eval=46/48 paired:layer_000/q->4,layer_030/v->16
+interaction search round=1 eval=47/48 paired:layer_001/v->4,layer_031/k->16
+interaction search round=1 eval=48/48 paired:layer_000/q->4,layer_031/k->16
+heldout frontier [1/11] uniform_w8
+heldout frontier [2/11] search_candidate
+heldout frontier [3/11] search_candidate
+heldout frontier [4/11] search_candidate
+heldout frontier [5/11] search_candidate
+heldout frontier [6/11] search_candidate
+heldout frontier [7/11] search_candidate
+heldout frontier [8/11] search_candidate
+heldout frontier [9/11] search_candidate
+heldout frontier [10/11] search_candidate
+heldout frontier [11/11] search_candidate
+wrote results/sensitivity/llama31_8b_interaction_aware.json
+{
+  "decision": "NO_GO_CLOSE_STRUCTURED_WEIGHT_PRECISION",
+  "frontier_profiles": 11,
+  "projection_assignments": 0
+}

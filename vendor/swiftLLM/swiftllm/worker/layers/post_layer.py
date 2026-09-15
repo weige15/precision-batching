@@ -18,7 +18,8 @@ class LlamaPostLayer:
     def forward(
         self,
         input_embds: torch.Tensor,	# [num_total_tokens, hidden_size]
-        infer_state: LlamaInferState
+        infer_state: LlamaInferState,
+        return_logits: bool = False,
     ) -> torch.Tensor:
         # Slice to get the last token embedding for each request
         last_token_indices = torch.cat(
@@ -36,6 +37,7 @@ class LlamaPostLayer:
             self.model_config.rms_norm_eps
         )
         logits = linear(last_input, self.weights.lm_head)    # [batch_size, vocab_size]
-        output_tokens = torch.argmax(logits, dim=1)
-        return output_tokens
+        if return_logits:
+            return logits
+        return torch.argmax(logits, dim=1)
     

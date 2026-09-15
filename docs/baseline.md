@@ -19,7 +19,8 @@ git -C /tmp/swiftLLM checkout --detach 682cf9a28f97f7490409981a2f181528f377eb5d
 - SwiftLLM commit: `682cf9a28f97f7490409981a2f181528f377eb5d`
 - Clean snapshot: `vendor/swiftLLM-upstream/`
 - Research fork: `vendor/swiftLLM/`
-- Research diff: `references/swiftllm-research.diff`
+- Structured research diff: `references/swiftllm-research.diff`
+- Live-KV research diff: `references/swiftllm-kv-page.diff`
 - QAQ source/code notes: [`docs/papers.md`](papers.md), `vendor/qaq/`
 - Paper PDFs: `references/qaq-2403.04643.pdf` and `references/morphserve-2506.02006-v2.pdf`
 
@@ -30,7 +31,7 @@ git -C /tmp/swiftLLM checkout --detach 682cf9a28f97f7490409981a2f181528f377eb5d
 - Linux x86_64, Python 3.12.3
 - 7 × NVIDIA GeForce RTX 3090, 24,576 MiB each, driver 580.159.03, compute capability 8.6
 - PyTorch 2.4.0+cu121, CUDA runtime 12.1, Triton 3.0.0
-- `transformers` 4.51.3, `safetensors` 0.8.0, `vllm-flash-attn` 2.6.2, Ray 2.58.0
+- `transformers` 4.51.3, `safetensors` 0.8.0, `datasets` 3.6.0, `pyarrow` 25.0.1, `vllm-flash-attn` 2.6.2, Ray 2.58.0
 - CUDA toolkit selected by the C++ extension build: `/usr/local/cuda-12.4`
 - Primary model: local Llama 3.2 1B Instruct snapshot `9213176726f574b556790deb65791e0c5aa438b6`, with per-file SHA-256 hashes in the snapshot and sensitivity JSON.
 - Secondary model: local Llama 3.1 8B snapshot `d04e592bb4f6aa9cfee91e2e20afa771667e1d4b`.
@@ -79,3 +80,22 @@ CUDA_VISIBLE_DEVICES=5 \
 ```
 
 The smoke output verifies exact repeated all-FP16 output, successful mixed-profile propagation through Q/K/V/O/FFN call sites, and a changed output for the opted-in eager proxy. It is not a serving-performance result. The final artifact-gate output is preserved in `results/baseline/artifact-verification.log`.
+
+## Final interaction-aware structured experiment
+
+The model-level experiment is intentionally separate from the scheduler. The
+current evidence starts from uniform W8, measures every Q/K/V/O/FFN unit with
+W8-centered W4 and FP16 perturbations, executes actual combined profiles on
+three dispersed Wikitext train shards, and evaluates the final frontier on
+unseen dispersed validation windows. The 1B run exhaustively executes all
+`3^5 = 243` projection-only assignments. The gated 8B confirmation uses a
+bounded combined search only; it does not repeat the 1B-only exhaustive check.
+
+See `docs/feasibility-report.md` for the exact commands and decision, and use
+the checked-in `results/sensitivity/*_interaction_aware.json` artifacts. The
+verifier recomputes profile storage, summary/stability/bootstrap values, shard
+ID separation, combined execution coverage, staged gate provenance, and the
+1B projection count. The separate live-KV phase is reproduced with
+`scripts/kv_precision_experiment.py`; see `docs/kv-precision-report.md`. It
+uses actual packed page payloads but a transparent PyTorch mixed-attention
+reference, so it is not evidence of native low-bit kernel speed.
