@@ -63,6 +63,100 @@ def verify_matrix(path: Path, expected_prompts: int, expected_layers: int | None
         check(len(local) == expected_layers * 6, f"incomplete layer sweep in {path}")
 
 
+def verify_structured(path: Path, expected_calibration: int, expected_heldout: int, expected_task: int, expected_layers: int) -> None:
+    data = json.loads(path.read_text())
+    check(data["schema_version"] == 2, f"wrong structured schema in {path}")
+    check(data["experiment"] == "structured_layer_by_projection_weight_precision", f"wrong structured experiment in {path}")
+    check(data["scope"]["kv_cache_quantization"] is False, f"structured experiment must not quantize KV cache: {path}")
+    check(data["scope"]["native_low_bit_kernel"] is False, f"structured experiment is not a native kernel: {path}")
+    check(data["proxy"]["fp16_scale_overhead"] is False, f"FP16 scale overhead was charged: {path}")
+    check(all(data["storage_accounting"]["manual_cases"]["checks"].values()), f"manual storage checks failed: {path}")
+    check(data["environment"]["swiftllm_research_diff_sha256"] == file_sha256(ROOT / "references/swiftllm-research.diff"), f"structured provenance is stale: {path}")
+    units = data["storage_accounting"]["unit_shapes"]
+    fixed_fp16_bits = int(data["storage_accounting"]["fixed_fp16_bits"])
+    config = data["model"]["config"]
+    expected_fixed_numel = int(config["vocab_size"]) * int(config["hidden_size"]) * (1 + int(not config.get("tie_word_embeddings", False)))
+    expected_fixed_numel += (2 * int(config["num_hidden_layers"]) + 1) * int(config["hidden_size"])
+    check(fixed_fp16_bits == expected_fixed_numel * 16, f"fixed FP16 ledger does not match Llama non-unit parameters: {path}")
+    check(len(units) == expected_layers * 5, f"expected Q/K/V/O/FFN unit for every layer: {path}")
+    unit_by_key = {unit["key"]: unit for unit in units}
+    check(len(unit_by_key) == len(units), f"duplicate structured units: {path}")
+
+    def unit_cost(unit: dict, bits: int) -> dict[str, int]:
+        weight = padding = scales = 0
+        for matrix in unit["matrices"]:
+            numel = int(matrix["numel"])
+            if bits == 16:
+                weight += 16 * numel
+            else:
+                quantized_numel = int(matrix["out_features"]) * int(matrix["padded_in_features"])
+                weight += bits * quantized_numel
+                padding += bits * (quantized_numel - numel)
+                scales += 16 * int(matrix["scale_count"])
+        return {"weight_payload_bits": weight, "padding_bits": padding, "scale_bits": scales, "zero_point_bits": 0, "metadata_bits": 0, "total_bits": weight + scales}
+
+    for bits, expected in data["storage_accounting"]["uniform_profiles"].items():
+        total = {key: 0 for key in ("weight_payload_bits", "padding_bits", "scale_bits", "zero_point_bits", "metadata_bits", "total_bits")}
+        for unit in units:
+            costs = unit_cost(unit, int(bits))
+            for key in total:
+                total[key] += costs[key]
+        total["weight_payload_bits"] += fixed_fp16_bits
+        total["total_bits"] += fixed_fp16_bits
+        for key in total:
+            check(total[key] == expected[key], f"storage formula mismatch for uniform W{bits} {key}: {path}")
+        if int(bits) == 16:
+            check(total["scale_bits"] == 0, f"FP16 unexpectedly has scales: {path}")
+
+    sensitivity = data["single_unit_sensitivity"]
+    check(set(sensitivity) == set(unit_by_key), f"single-unit sensitivity does not cover every unit: {path}")
+    for unit_key, measurements in sensitivity.items():
+        check(set(measurements) == {"4", "8", "16"}, f"missing 4/8/16 sensitivity for {unit_key}: {path}")
+        check("summary" in measurements["4"] and "summary" in measurements["8"], f"missing sensitivity summaries for {unit_key}: {path}")
+
+    check(data["policy_search"]["combined_calibration_metrics_are_used_for_selection"] is True, f"combined calibration selection missing: {path}")
+    check(data["policy_search"]["heldout_metrics_are_not_used_for_selection"] is True, f"heldout selection leakage: {path}")
+    check(data["policy_search"]["additive_prediction_is_not_final_selection_evidence"] is True, f"additive selection leakage: {path}")
+    required_kinds = {"uniform", "projection_only", "layer", "layer_by_projection", "heuristic"}
+    policies = data["policies"]
+    check(required_kinds <= {row["profile"]["kind"] for row in policies}, f"missing structured policy kind: {path}")
+    check({row["profile"]["name"] for row in policies} >= {"uniform_w4", "uniform_w8", "uniform_w16"}, f"missing uniform baselines: {path}")
+    for row in policies:
+        profile = row["profile"]
+        total = {key: 0 for key in ("weight_payload_bits", "padding_bits", "scale_bits", "zero_point_bits", "metadata_bits", "total_bits")}
+        check(set(profile["unit_bits"]) == set(unit_by_key), f"profile does not assign every unit {profile['name']}: {path}")
+        for key, bits in profile["unit_bits"].items():
+            check(key in unit_by_key and int(bits) in (4, 8, 16), f"invalid profile assignment {key}: {path}")
+            costs = unit_cost(unit_by_key[key], int(bits))
+            for field in total:
+                total[field] += costs[field]
+        total["weight_payload_bits"] += fixed_fp16_bits
+        total["total_bits"] += fixed_fp16_bits
+        for field in total:
+            check(total[field] == profile["storage"][field], f"profile storage mismatch {profile['name']} {field}: {path}")
+        check(profile["storage"]["fixed_fp16_bits"] == fixed_fp16_bits, f"fixed FP16 storage mismatch {profile['name']}: {path}")
+        check(len(row["calibration"]["per_sample"]) == expected_calibration, f"calibration count mismatch {profile['name']}: {path}")
+        check(len(row["heldout"]["per_sample"]) == expected_heldout, f"heldout count mismatch {profile['name']}: {path}")
+        check(len(row["task"]["per_sample"]) == expected_task, f"task count mismatch {profile['name']}: {path}")
+        check("bootstrap_95" in row["heldout"], f"missing heldout confidence interval {profile['name']}: {path}")
+        check("bootstrap_95" in row["task"], f"missing task confidence interval {profile['name']}: {path}")
+    calibration_ids = set(data["data"]["calibration"]["sample_ids"])
+    heldout_ids = set(data["data"]["heldout"]["sample_ids"])
+    check(calibration_ids.isdisjoint(heldout_ids), f"calibration and heldout samples overlap: {path}")
+    fp16_noop = data["verification"]["all_fp16_noop"]
+    check(fp16_noop["max_abs_nll_delta"] <= 0.0, f"FP16 NLL no-op failed: {path}")
+    check(fp16_noop["max_logit_mse"] <= 0.0, f"FP16 logit no-op failed: {path}")
+    check(fp16_noop["max_kl_reference_to_candidate"] <= 0.0, f"FP16 KL no-op failed: {path}")
+    check(fp16_noop["min_top1_match"] >= 1.0, f"FP16 top-1 no-op failed: {path}")
+    check(data["verification"]["selection_uses_calibration_only"] is True, f"selection leakage flag: {path}")
+    check(data["verification"]["headline_uses_heldout"] is True, f"headline heldout flag: {path}")
+    check(data["verification"]["additive_model_is_candidate_generator_only"] is True, f"additive leakage flag: {path}")
+    check("combined profiles" in data["verification"]["interaction_adaptation"], f"missing interaction adaptation: {path}")
+    check("oracle_to_global_logit_mse_ratio" in data["query_oracle"], f"missing oracle logit-MSE comparison: {path}")
+    check(data["query_oracle"]["oracle_to_global_logit_mse_ratio"] >= 0, f"invalid oracle logit-MSE ratio: {path}")
+    check(data["verification"]["budgets_exact_only_when_total_bits_equal"] is True, f"budget equality flag: {path}")
+
+
 def main() -> None:
     check((ROOT / "vendor/swiftLLM/UPSTREAM_COMMIT").read_text().strip() == COMMIT, "research marker is not pinned")
     check((ROOT / "vendor/swiftLLM-upstream/UPSTREAM_COMMIT").read_text().strip() == COMMIT, "clean marker is not pinned")
@@ -80,6 +174,8 @@ def main() -> None:
     verify_matrix(ROOT / "results/sensitivity/llama31_8b_qkv_matrix.json", 8)
     verify_matrix(ROOT / "results/sensitivity/llama32_1b_qkv_matrix_layer_sweep.json", 8, 16)
     verify_matrix(ROOT / "results/sensitivity/llama31_8b_qkv_matrix_layer_sweep_4prompts.json", 4, 32)
+    verify_structured(ROOT / "results/sensitivity/llama32_1b_structured.json", 16, 32, 32, 16)
+    verify_structured(ROOT / "results/sensitivity/llama31_8b_structured.json", 8, 16, 16, 32)
     for required in (
         "docs/baseline.md",
         "docs/claim-evidence.md",

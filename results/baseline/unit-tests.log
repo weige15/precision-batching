@@ -5,8 +5,10 @@ test_invalid_api_profile_is_a_422 (test_precision.PrecisionMetadataTests.test_in
 test_mapping_rejects_unknown_fields (test_precision.PrecisionMetadataTests.test_mapping_rejects_unknown_fields) ... ok
 test_request_carries_profile (test_precision.PrecisionMetadataTests.test_request_carries_profile) ... ok
 test_precision_metadata_does_not_change_fcfs_admission (test_precision.SchedulerSemanticsTests.test_precision_metadata_does_not_change_fcfs_admission) ... ok
+test_manual_representation_cases (test_structured_precision.StorageAccountingTests.test_manual_representation_cases) ... ok
+test_profile_cost_is_sum_of_unit_costs (test_structured_precision.StorageAccountingTests.test_profile_cost_is_sum_of_unit_costs) ... ok
 
 ----------------------------------------------------------------------
-Ran 7 tests in 0.004s
+Ran 9 tests in 0.005s
 
 OK

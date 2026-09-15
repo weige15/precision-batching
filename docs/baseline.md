@@ -30,7 +30,7 @@ git -C /tmp/swiftLLM checkout --detach 682cf9a28f97f7490409981a2f181528f377eb5d
 - Linux x86_64, Python 3.12.3
 - 7 × NVIDIA GeForce RTX 3090, 24,576 MiB each, driver 580.159.03, compute capability 8.6
 - PyTorch 2.4.0+cu121, CUDA runtime 12.1, Triton 3.0.0
-- `transformers` 4.51.3, `safetensors` 0.8.0, `vllm-flash-attn` 2.6.2, Ray 2.58.0
+- `transformers` 4.51.3, `safetensors` 0.8.0, `datasets` 3.6.0, `pyarrow` 25.0.1, `vllm-flash-attn` 2.6.2, Ray 2.58.0
 - CUDA toolkit selected by the C++ extension build: `/usr/local/cuda-12.4`
 - Primary model: local Llama 3.2 1B Instruct snapshot `9213176726f574b556790deb65791e0c5aa438b6`, with per-file SHA-256 hashes in the snapshot and sensitivity JSON.
 - Secondary model: local Llama 3.1 8B snapshot `d04e592bb4f6aa9cfee91e2e20afa771667e1d4b`.
@@ -79,3 +79,18 @@ CUDA_VISIBLE_DEVICES=5 \
 ```
 
 The smoke output verifies exact repeated all-FP16 output, successful mixed-profile propagation through Q/K/V/O/FFN call sites, and a changed output for the opted-in eager proxy. It is not a serving-performance result. The final artifact-gate output is preserved in `results/baseline/artifact-verification.log`.
+
+## Structured model-level experiment
+
+The model-level experiment is intentionally separate from the scheduler. It uses Wikitext-2 train as calibration and validation as held-out text, plus a deterministic HellaSwag validation subset for teacher-forced multiple-choice accuracy. It measures 5 units per layer (Q/K/V/O/FFN), includes fixed FP16 parameters in its representation-aware storage ledger, and records exact profile assignments and bootstrap intervals:
+
+```bash
+MODEL=/path/to/local/llama-checkpoint
+CUDA_VISIBLE_DEVICES=5 .venv/bin/python scripts/structured_precision_experiment.py \
+  --model-path "$MODEL" \
+  --output results/sensitivity/structured.json \
+  --device cuda:0 --calibration-samples 16 --heldout-samples 32 \
+  --task-samples 32 --seq-len 128 --batch-size 2 --bootstrap-iterations 1000
+```
+
+Use the checked-in JSONs and `docs/feasibility-report.md` for the exact 1B/8B counts. `scripts/verify_artifacts.py` independently recomputes every profile's bit ledger and checks calibration/held-out separation. The experiment is a FP16-after-dequantization numerical proxy; it does not measure native kernel speed or KV-cache compression.
