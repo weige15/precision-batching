@@ -14,6 +14,8 @@ Evidence-first research baseline for query- and Q/K/V-aware mixed-precision cont
 - [KV page format](docs/kv-page-format.md) — page ownership, formats, quantizer, and mixed attention seam.
 - [KV feasibility report](docs/kv-precision-report.md) — live-demotion measurements, quality, blockers, and decision.
 - [KV completion audit](docs/kv-completion-audit.md) — requirement-by-requirement audit for this phase.
+- [Public low-bit KV study](docs/public-kv-study.md) — KIVI/KVQuant/Kitty/QAQ/Minima-KV provenance, local reproductions, and integration recommendation.
+- [Public KV completion audit](docs/public-kv-completion-audit.md) — objective-to-artifact checklist and verification status.
 
 ## What is included
 
